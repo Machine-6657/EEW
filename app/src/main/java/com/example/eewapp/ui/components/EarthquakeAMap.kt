@@ -1,44 +1,38 @@
 package com.example.eewapp.ui.components
 
-import android.graphics.Color
+import android.content.Context
+import android.content.res.Resources
+import android.hardware.camera2.CameraAccessException
+import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraManager
+import android.media.AudioAttributes
+import android.media.SoundPool
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.util.Log
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.animation.*
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -53,14 +47,9 @@ import com.example.eewapp.utils.EarthquakeUtils.calculateDistance
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.ui.graphics.Color as ComposeColor
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
@@ -101,6 +90,136 @@ fun EarthquakeAMap(
     
     // 记录是否已经定位到用户位置
     val hasMovedToUserLocation = remember { mutableStateOf(false) }
+    
+    val context = LocalContext.current // 获取 Context
+    val scope = rememberCoroutineScope() // 获取 CoroutineScope for flashlight
+
+    // --- START: SoundPool Management ---
+    // Remember the SoundPool and soundId
+    val soundPool = remember {
+        val audioAttributes = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_ALARM)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build()
+        SoundPool.Builder()
+            .setMaxStreams(1)
+            .setAudioAttributes(audioAttributes)
+            .build()
+    }
+    var soundId by remember { mutableIntStateOf(0) } // Store soundId in state
+    var soundLoaded by remember { mutableStateOf(false) } // Track loading status
+
+    // Load sound and release SoundPool on dispose
+    DisposableEffect(Unit) {
+        try {
+            soundId = soundPool.load(context, R.raw.alarm_sound, 1)
+            soundPool.setOnLoadCompleteListener { _, sampleId, status ->
+                if (sampleId == soundId && status == 0) {
+                    soundLoaded = true
+                    Log.d("EarthquakeAMapSound", "Sound R.raw.alarm_sound loaded successfully.")
+                } else {
+                    Log.e("EarthquakeAMapSound", "Failed to load sound R.raw.alarm_sound, status: $status")
+                }
+            }
+            Log.d("EarthquakeAMapSound", "Initiated sound loading for R.raw.alarm_sound")
+        } catch (e: Resources.NotFoundException) {
+            Log.e("EarthquakeAMapSound", "Sound resource R.raw.alarm_sound not found.", e)
+        } catch (e: Exception) {
+            Log.e("EarthquakeAMapSound", "Error loading sound", e)
+        }
+
+        onDispose {
+            Log.d("EarthquakeAMapSound", "Releasing SoundPool.")
+            soundPool.release()
+        }
+    }
+    // --- END: SoundPool Management ---
+
+    // --- START: Alert Logic LaunchedEffect ---
+    LaunchedEffect(selectedImpact, soundLoaded) { // Add soundLoaded as a key
+        val currentSelectedImpact = selectedImpact
+
+        if (currentSelectedImpact != null && currentSelectedImpact.earthquake.id.startsWith("simulated-")) {
+            Log.d("EarthquakeAMapAlert", "模拟地震状态检测到")
+
+            // --- 1. 震动 --- (Keep as before)
+            val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator?
+             if (vibrator?.hasVibrator() == true) {
+                 try {
+                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                         val vibrationEffect = VibrationEffect.createOneShot(5000, VibrationEffect.DEFAULT_AMPLITUDE)
+                         vibrator.vibrate(vibrationEffect)
+                         Log.d("EarthquakeAMapAlert", "触发震动 (Android O+)")
+                     } else {
+                         @Suppress("DEPRECATION")
+                         vibrator.vibrate(1000)
+                         Log.d("EarthquakeAMapAlert", "触发震动 (< Android O)")
+                     }
+                 } catch (e: Exception) {
+                      Log.e("EarthquakeAMapAlert", "震动失败", e)
+                 }
+             } else {
+                  Log.w("EarthquakeAMapAlert", "设备不支持震动")
+             }
+
+
+            // --- 2. 声音 (Modified) ---
+            if (soundLoaded && soundId != 0) { // Check if sound is loaded
+                 try {
+                    soundPool.play(soundId, 1f, 1f, 1, 0, 1f)
+                    Log.d("EarthquakeAMapAlert", "播放警报声音 (R.raw.alarm_sound)")
+                 } catch (e: Exception) {
+                     Log.e("EarthquakeAMapAlert", "播放声音失败", e)
+                 }
+            } else if (soundId != 0) {
+                 Log.w("EarthquakeAMapAlert", "声音 R.raw.alarm_sound 尚未加载完成，无法播放")
+                 // Optionally, wait or retry, but simply logging might be sufficient
+            } else {
+                 Log.e("EarthquakeAMapAlert", "无法播放声音，soundId 无效 (可能加载失败或未找到资源)")
+            }
+
+
+            // --- 3. 闪光灯 --- (Keep as before)
+            scope.launch {
+                 val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager?
+                 var cameraId: String? = null
+                 try {
+                     if (cameraManager == null) {
+                         Log.w("EarthquakeAMapAlert", "无法获取 CameraManager")
+                         return@launch
+                     }
+                     cameraId = cameraManager.cameraIdList.firstOrNull { camId ->
+                         val characteristics = cameraManager.getCameraCharacteristics(camId)
+                         characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true &&
+                         characteristics.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK
+                     }
+
+                     if (cameraId != null) {
+                         Log.d("EarthquakeAMapAlert", "找到支持闪光灯的后置摄像头: $cameraId")
+                         for (i in 1..6) { // Flash 3 times
+                             try {
+                                 cameraManager.setTorchMode(cameraId, i % 2 != 0)
+                                 delay(300)
+                             } catch (camE: CameraAccessException) {
+                                 Log.e("EarthquakeAMapAlert", "控制闪光灯失败", camE)
+                                 break
+                             }
+                         }
+                         try { cameraManager.setTorchMode(cameraId, false) } catch (ignore: Exception) {}
+                         Log.d("EarthquakeAMapAlert", "闪光灯闪烁完成")
+                     } else {
+                         Log.w("EarthquakeAMapAlert", "未找到支持闪光灯的后置摄像头")
+                     }
+                 } catch (e: Exception) {
+                      Log.e("EarthquakeAMapAlert", "闪光灯操作失败", e)
+                     if (cameraId != null && cameraManager != null) {
+                         try { cameraManager.setTorchMode(cameraId, false) } catch (ignore: Exception) {}
+                     }
+                 }
+            } // end scope.launch
+        }
+    } // End of LaunchedEffect
+    // --- END: Alert Logic LaunchedEffect ---
     
     // 更新选中的地震 (当通过点击设置或当前影响更新时)
     LaunchedEffect(selectedEarthquake, currentImpact) {
@@ -204,13 +323,7 @@ fun EarthquakeAMap(
             // 如果有当前影响的地震，显示地震震中和波纹
             currentImpact?.let { impact ->
                 val earthquake = impact.earthquake
-                // 使用反射创建LatLng对象
-                val epicenter = createLatLng(
-                    earthquake.location.latitude,
-                    earthquake.location.longitude
-                )
-                
-                // 使用EarthquakeAMapContent处理地图内容
+                val epicenter = createLatLng(earthquake.location.latitude, earthquake.location.longitude)
                 EarthquakeAMapContent(
                     aMap = map,
                     earthquake = earthquake,
@@ -219,75 +332,61 @@ fun EarthquakeAMap(
                     zoomLevel = zoomLevel
                 )
             }
-            
-            // 如果没有当前影响的地震，显示所有地震和选中的地震
+
+            // 如果没有当前影响的地震...
             if (currentImpact == null) {
-                // 显示所有地震
-                earthquakes.forEach { earthquake ->
-                    // 使用反射创建LatLng对象
-                    val position = createLatLng(
-                        earthquake.location.latitude,
-                        earthquake.location.longitude
-                    )
-                    
-                    // 获取震级对应的颜色，确保使用震级颜色而非蓝色
-                    val magnitudeColor = getMagnitudeColor(earthquake.magnitude)
-                    
-                    // 使用固定屏幕大小的标记点替代原来的圆形
-                    AMapScreenMarker(
-                        aMap = map,
-                        position = position,
-                        color = magnitudeColor, // 使用震级对应的颜色
-                        size = 10f,  // 内圆大小
-                        outerRingSize = 18f,  // 外圈大小
-                        outerRingAlpha = 80   // 外圈透明度
-                    )
-                    
-                    // 添加点击事件处理
-                    AMapCircleClickable(
-                        aMap = map,
-                        center = position,
-                        radius = 5000.0, // 稍大一些以便点击
-                        strokeWidth = 0f,
-                        strokeColor = android.graphics.Color.TRANSPARENT,
-                        fillColor = android.graphics.Color.TRANSPARENT,
-                        onClick = {
-                            // 点击地震标记显示详情
-                            localSelectedEarthquake = earthquake
-                            
-                            // 查找对应的影响
-                            selectedImpact = significantEarthquakes.find { 
-                                it.earthquake.id == earthquake.id 
+                // --- Add check for simulation state --- 
+                val isSimulating = selectedImpact != null && localSelectedEarthquake?.id?.startsWith("simulated-") == true
+                // --- ---------------------------- ---
+
+                // --- Only draw all earthquakes if NOT simulating ---
+                if (!isSimulating) {
+                    // 显示所有地震
+                    earthquakes.forEach { earthquake ->
+                        val position = createLatLng(earthquake.location.latitude, earthquake.location.longitude)
+                        val magnitudeColor = getMagnitudeColor(earthquake.magnitude)
+                        AMapScreenMarker(
+                            aMap = map,
+                            position = position,
+                            color = magnitudeColor,
+                            size = 6f,
+                            outerRingSize = 10f,
+                            outerRingAlpha = 80
+                        )
+                        AMapCircleClickable(
+                            aMap = map,
+                            center = position,
+                            radius = 5000.0,
+                            strokeWidth = 0f,
+                            strokeColor = android.graphics.Color.TRANSPARENT,
+                            fillColor = android.graphics.Color.TRANSPARENT,
+                            onClick = {
+                                localSelectedEarthquake = earthquake
+                                selectedImpact = significantEarthquakes.find { it.earthquake.id == earthquake.id }
+                                true 
                             }
-                            
-                            true
-                        }
-                    )
+                        )
+                    }
                 }
-                
-                // 显示选中的地震详情
+                // --- ------------------------------------------- ---
+
+                // 显示选中的地震详情 (可以是模拟的，也可以是手动点的)
                 if (localSelectedEarthquake != null) {
                     val earthquake = localSelectedEarthquake!!
-                    // 使用反射创建LatLng对象
-                    val epicenter = createLatLng(
-                        earthquake.location.latitude,
-                        earthquake.location.longitude
-                    )
-                    
-                    // 获取震级对应的颜色
+                    val epicenter = createLatLng(earthquake.location.latitude, earthquake.location.longitude)
                     val magnitudeColor = getMagnitudeColor(earthquake.magnitude)
-                    
-                    // 高亮显示选中的地震，使用更大的标记点
+
+                    // 高亮显示选中的地震 (模拟或手动)
                     AMapScreenMarker(
                         aMap = map,
                         position = epicenter,
-                        color = magnitudeColor, // 确保使用震级颜色而非蓝色
-                        size = 14f,  // 更大的内圆
-                        outerRingSize = 24f,  // 更大的外圈
-                        outerRingAlpha = 100  // 更明显的外圈
+                        color = magnitudeColor,
+                        size = 14f,
+                        outerRingSize = 24f,
+                        outerRingAlpha = 100
                     )
-                    
-                    // 如果有影响数据，显示波纹效果
+
+                    // 如果有影响数据 (模拟或手选对应的)，显示波纹效果和连线
                     if (selectedImpact != null) {
                         EarthquakeAMapContent(
                             aMap = map,
@@ -298,20 +397,17 @@ fun EarthquakeAMap(
                         )
                     }
                 }
-                
-                // 如果用户位置可用，显示用户位置（只有这里使用蓝色标记）
+
+                // 如果用户位置可用，显示用户位置标记 (始终显示，无论是否模拟)
                 if (userLocation != null) {
-                    // 使用反射创建LatLng对象
                     val userLatLng = createLatLng(userLocation.latitude, userLocation.longitude)
-                    
-                    // 使用固定屏幕大小的蓝色标记点表示用户位置
                     AMapScreenMarker(
                         aMap = map,
                         position = userLatLng,
-                        color = android.graphics.Color.rgb(30, 144, 255), // 亮蓝色 #1E90FF（只有用户位置使用蓝色）
-                        size = 12f,  // 内圆大小
-                        outerRingSize = 20f,  // 外圈大小
-                        outerRingAlpha = 80   // 外圈透明度
+                        color = android.graphics.Color.rgb(30, 144, 255),
+                        size = 12f,
+                        outerRingSize = 20f,
+                        outerRingAlpha = 80
                     )
                 }
             }
@@ -378,11 +474,11 @@ fun EarthquakeAMap(
             }
         }
         
-        // --- 集成可折叠控制面板 ---
+        // --- 集成可折叠控制面板 (移动到左上角) ---
         CollapsibleControlPanel(
             modifier = Modifier
-                .align(Alignment.CenterEnd) // Align to center-right
-                .padding(end = 8.dp),      // Padding from edge
+                .align(Alignment.TopStart) // Align to top-start
+                .padding(start = 8.dp, top = 16.dp), // Padding from top-left edge
             onSimulate = {
                 // 只有当用户位置可用时才能模拟地震
                 if (userLocation != null) {
@@ -484,40 +580,46 @@ fun EarthquakeAMap(
                     
                     // 移动相机到能同时看到地震和用户位置的位置
                     try {
-                        // 创建用户位置和地震位置的LatLng对象
                         val userLatLng = createLatLng(userLocation.latitude, userLocation.longitude)
                         val earthquakeLatLng = createLatLng(earthquakeLat, earthquakeLon)
-                        
-                        // 使用反射创建LatLngBounds.Builder
                         val latLngBoundsBuilderClass = Class.forName("com.amap.api.maps.model.LatLngBounds\$Builder")
                         val builder = latLngBoundsBuilderClass.newInstance()
-                        
-                        // 添加地震和用户位置
                         val includeMethod = latLngBoundsBuilderClass.getMethod("include", earthquakeLatLng.javaClass)
                         includeMethod.invoke(builder, earthquakeLatLng)
                         includeMethod.invoke(builder, userLatLng)
-                        
-                        // 构建边界
                         val buildMethod = latLngBoundsBuilderClass.getMethod("build")
                         val bounds = buildMethod.invoke(builder)
-                        
-                        // 移动相机到边界
                         val cameraUpdateFactoryClass = Class.forName("com.amap.api.maps.CameraUpdateFactory")
-                        val newLatLngBoundsMethod = cameraUpdateFactoryClass.getMethod(
-                            "newLatLngBounds", bounds.javaClass, Int::class.java
-                        )
-                        val padding = 100 // 边界内边距（像素）
-                        val cameraUpdate = newLatLngBoundsMethod.invoke(null, bounds, padding)
                         
-                        val animateCameraMethod = aMap!!.javaClass.getMethod(
-                            "animateCamera", Class.forName("com.amap.api.maps.CameraUpdate")
+                        // --- Use newLatLngBoundsRect for specific padding ---
+                        val newLatLngBoundsRectMethod = cameraUpdateFactoryClass.getMethod(
+                            "newLatLngBoundsRect", 
+                            bounds.javaClass, 
+                            Int::class.java, // paddingLeft
+                            Int::class.java, // paddingTop
+                            Int::class.java, // paddingRight
+                            Int::class.java  // paddingBottom
                         )
+                        val paddingLeft = 200
+                        val paddingTop = 300 // Reduced top padding
+                        val paddingRight = 200
+                        val paddingBottom = 1000 // Further increased bottom padding
+                        val cameraUpdate = newLatLngBoundsRectMethod.invoke(
+                            null, 
+                            bounds, 
+                            paddingLeft, 
+                            paddingTop, 
+                            paddingRight, 
+                            paddingBottom
+                        )
+                        // --- -------------------------------------------- ---
+                        
+                        val animateCameraMethod = aMap!!.javaClass.getMethod("animateCamera", Class.forName("com.amap.api.maps.CameraUpdate"))
                         animateCameraMethod.invoke(aMap, cameraUpdate)
                     } catch (e: Exception) {
                         Log.e("EarthquakeAMap", "移动相机失败", e)
-                        // 如果边界方法失败，退回到简单地移动到地震位置
                         val epicenter = createLatLng(earthquakeLat, earthquakeLon)
-                        aMap?.let { animateCamera(it, epicenter, 9f) }
+                        aMap?.let { animateCamera(it, epicenter, 9f) } // Fallback
                     }
                     
                     // 显示模拟地震提示
@@ -543,7 +645,7 @@ fun EarthquakeAMap(
             visible = localSelectedEarthquake != null && currentImpact == null,
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-            modifier = Modifier.align(Alignment.BottomCenter)
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 95.dp, start = 16.dp, end = 16.dp)
         ) {
             localSelectedEarthquake?.let { eq ->
                 // 如果能找到对应的impact信息，则显示完整卡片，否则显示简化卡片
@@ -563,7 +665,7 @@ fun EarthquakeAMap(
             visible = selectedImpact != null, // Modified: Show card if selectedImpact is not null
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-            modifier = Modifier.align(Alignment.BottomCenter)
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 95.dp, start = 16.dp, end = 16.dp)
         ) {
             selectedImpact?.let { impact ->
                 EarthquakeInfoCardCompact(earthquake = impact.earthquake, impact = impact, onClose = {
@@ -663,7 +765,7 @@ fun EarthquakeInfoCardCompact(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(horizontal = 12.dp, vertical = 12.dp)
         ) {
             // 使用三列布局，每列包含标签和值
             Row(
@@ -679,7 +781,7 @@ fun EarthquakeInfoCardCompact(
                     Text(
                         text = "震中",
                         color = TextSecondary,
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodySmall
                     )
                     
                     Text(
@@ -687,9 +789,9 @@ fun EarthquakeInfoCardCompact(
                         color = TextPrimary,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 8.dp),
+                        modifier = Modifier.padding(top = 4.dp),
                         maxLines = 2, // 允许最多两行
-                        lineHeight = 20.sp // 行高设置紧凑一些
+                        lineHeight = 18.sp // 行高设置紧凑一些
                     )
                 }
                 
@@ -703,7 +805,7 @@ fun EarthquakeInfoCardCompact(
                     Text(
                         text = "预警震级",
                         color = TextSecondary,
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodySmall
                     )
                     
                     Box(
@@ -711,10 +813,10 @@ fun EarthquakeInfoCardCompact(
                             .padding(top = 8.dp)
                             .background(
                                 when {
-                                    earthquake.magnitude >= 6.0 -> ComposeColor(0xFFFF0000) // 红色 (6级及以上)
-                                    earthquake.magnitude >= 5.0 -> ComposeColor(0xFFFFA500) // 橙色 (5-5.9级)
-                                    earthquake.magnitude >= 4.0 -> ComposeColor(0xFFFFFF00) // 黄色 (4-4.9级)
-                                    else -> ComposeColor(0xFF008000) // 绿色 (小于4级)
+                                    earthquake.magnitude >= 6.0 -> ComposeColor(android.graphics.Color.rgb(239, 83, 80)) // 柔和红色 (6级及以上)
+                                    earthquake.magnitude >= 5.0 -> ComposeColor(android.graphics.Color.rgb(255, 167, 38)) // 柔和橙色 (5-5.9级)
+                                    earthquake.magnitude >= 4.0 -> ComposeColor(android.graphics.Color.rgb(255, 220, 79)) // 更暗的黄色 (4-4.9级)
+                                    else -> ComposeColor(android.graphics.Color.rgb(129, 199, 132)) // 柔和绿色 (小于4级)
                                 }, 
                                 RoundedCornerShape(4.dp)
                             )
@@ -723,7 +825,7 @@ fun EarthquakeInfoCardCompact(
                     ) {
                         Text(
                             text = "${earthquake.magnitude}",
-                            color = ComposeColor.White,
+                            color = TextSecondary,
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
@@ -734,19 +836,20 @@ fun EarthquakeInfoCardCompact(
                 
                 // 预估震感列
                 Column(
-                    horizontalAlignment = Alignment.End,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
                     modifier = Modifier.weight(0.4f)
                 ) {
                     Text(
                         text = "预估震感",
                         color = TextSecondary,
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodySmall
                     )
                     
                     Text(
                         text = "${getIntensityText(impact.intensity)}",
                         color = getIntensityColorNew(impact.intensity),
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(top = 8.dp)
                     )
@@ -765,14 +868,15 @@ fun EarthquakeInfoCardCompact(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .padding(top = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 // 位置信息
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(end = 8.dp)
+                        .padding(end = 4.dp)
                 ) {
                     InfoRowCompact(
                         icon = Icons.Filled.LocationOn,
@@ -785,7 +889,7 @@ fun EarthquakeInfoCardCompact(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(start = 8.dp)
+                        .padding(start = 4.dp)
                 ) {
                     InfoRowCompact(
                         icon = Icons.Filled.Timer,
@@ -799,14 +903,15 @@ fun EarthquakeInfoCardCompact(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .padding(top = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 // 距离信息
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(end = 8.dp)
+                        .padding(end = 4.dp)
                 ) {
                     InfoRowCompact(
                         icon = Icons.Filled.LocationOn,
@@ -819,7 +924,7 @@ fun EarthquakeInfoCardCompact(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(start = 8.dp)
+                        .padding(start = 4.dp)
                 ) {
                     // 使用 remember 和 LaunchedEffect 来实现倒计时
                     var remainingSeconds by remember { mutableStateOf(impact.secondsUntilArrival) }
@@ -833,41 +938,14 @@ fun EarthquakeInfoCardCompact(
                         }
                     }
                     
-                    // 预警时间信息
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(WarningBackground, RoundedCornerShape(4.dp))
-                            .padding(8.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Warning,
-                                contentDescription = null,
-                                tint = RedEmphasis,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            
-                            Spacer(modifier = Modifier.width(4.dp))
-                            
-                            Column {
-                                Text(
-                                    text = "预计到达",
-                                    color = TextSecondary,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                                
-                                Text(
-                                    text = if (remainingSeconds > 0) "${remainingSeconds}秒后" else "已到达",
-                                    color = RedEmphasis,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                    }
+                    // 使用 InfoRowCompact 替换原来的 Box 布局
+                    InfoRowCompact(
+                        icon = Icons.Filled.Timer,
+                        label = "预计到达时间",
+                        value = if (remainingSeconds > 0) "${remainingSeconds}秒后" else "已到达",
+                        valueColor = ComposeColor(0xFFE57373), // Pass the specific red color for value
+                        iconTint = ComposeColor(0xFFE57373) // Pass the specific red color for icon
+                    )
                 }
             }
         }
@@ -881,10 +959,11 @@ fun EarthquakeInfoCardCompact(
 private fun InfoRowCompact(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
-    value: String
+    value: String,
+    valueColor: ComposeColor = ComposeColor.Black, // Default to TextPrimary color
+    iconTint: ComposeColor = ComposeColor.DarkGray // Default to TextSecondary color
 ) {
-    val TextPrimary = ComposeColor.Black // 主要文本颜色
-    val TextSecondary = ComposeColor.DarkGray // 次要文本颜色
+    val TextSecondary = ComposeColor.DarkGray // Keep this for label color
 
     Row(
         verticalAlignment = Alignment.CenterVertically
@@ -892,7 +971,7 @@ private fun InfoRowCompact(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = TextSecondary,
+            tint = iconTint, // Use the passed iconTint
             modifier = Modifier.size(16.dp)
         )
         
@@ -902,13 +981,13 @@ private fun InfoRowCompact(
             Text(
                 text = label,
                 color = TextSecondary,
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.labelSmall
             )
             
             Text(
                 text = value,
-                color = TextPrimary,
-                style = MaterialTheme.typography.bodyMedium
+                color = valueColor, // Use the passed valueColor
+                style = MaterialTheme.typography.bodySmall
             )
         }
     }
@@ -949,82 +1028,87 @@ private fun formatDate(date: Date): String {
  * @param handleExpandedIcon Handle icon when expanded.
  * @param handleBackgroundColor 背景颜色.
  * @param handleContentColor icon 颜色.
+ * @param buttonContainerColor Background for buttons inside panel
+ * @param buttonContentColor Black text for buttons
  * @param onSimulate Callback when the simulate button is clicked.
  * @param onCancel Callback when the cancel button is clicked.
  */
 @Composable
 fun CollapsibleControlPanel(
     modifier: Modifier = Modifier,
-    panelBackgroundColor: ComposeColor = MaterialTheme.colorScheme.surfaceVariant,
-    handleIcon: androidx.compose.ui.graphics.vector.ImageVector = Icons.Default.ChevronLeft, // Icon when collapsed (pointing left to open)
-    handleExpandedIcon: androidx.compose.ui.graphics.vector.ImageVector = Icons.Default.ChevronRight, // Icon when expanded (pointing right to close)
-    handleBackgroundColor: ComposeColor = MaterialTheme.colorScheme.primaryContainer,
-    handleContentColor: ComposeColor = MaterialTheme.colorScheme.onPrimaryContainer,
+    panelBackgroundColor: ComposeColor = ComposeColor.White.copy(alpha = 0.8f),
+    handleIcon: ImageVector = Icons.Default.ChevronRight,
+    handleExpandedIcon: ImageVector = Icons.Default.ChevronLeft,
+    handleBackgroundColor: ComposeColor = ComposeColor(0xFF68C29F),
+    handleContentColor: ComposeColor = ComposeColor.White,
+    buttonContainerColor: ComposeColor = ComposeColor(0xFF68C29F),
+    buttonContentColor: ComposeColor = ComposeColor.Black,
     onSimulate: () -> Unit,
     onCancel: () -> Unit
 ) {
     var isPanelExpanded by remember { mutableStateOf(false) }
 
     Row(
-        modifier = modifier, // Allows caller to position this Row (e.g., align to end)
-        verticalAlignment = Alignment.CenterVertically // Align handle and panel vertically
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // Animated Panel Content (Slides in/out to the left of the handle)
-        AnimatedVisibility(
-            visible = isPanelExpanded,
-            // Animate entering from the right edge of its container
-            enter = slideInHorizontally(initialOffsetX = { fullWidth -> fullWidth }),
-            // Animate exiting towards the right edge of its container
-            exit = slideOutHorizontally(targetOffsetX = { fullWidth -> fullWidth })
-        ) {
-            Surface(
-                // Give the panel rounded corners only on the left side
-                shape = RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp),
-                shadowElevation = 4.dp,
-                color = panelBackgroundColor,
-                // Optional: Limit the panel's height if needed
-                 modifier = Modifier.height(IntrinsicSize.Min) // Adjust height based on content
-            ) {
-                Column(
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                        // Control the width based on the widest button
-                        .width(IntrinsicSize.Max),
-                    horizontalAlignment = Alignment.Start, // Align buttons to the start (left)
-                    // Space buttons and center them vertically within the column
-                    verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically)
-                ) {
-                    // Simulate Button
-                    Button(
-                        onClick = onSimulate,
-                        modifier = Modifier.fillMaxWidth() // Make button fill panel width
-                    ) {
-                        Text("模拟地震")
-                    }
-                    // Cancel Button
-                    Button(
-                        onClick = onCancel,
-                        modifier = Modifier.fillMaxWidth() // Make button fill panel width
-                    ) {
-                        Text("取消模拟")
-                    }
-                }
-            }
-        }
-
-        // Handle (Icon Button) - Always visible at the very end (right) of the Row
+        // Handle (Icon Button)
         IconButton(
             onClick = { isPanelExpanded = !isPanelExpanded },
             modifier = Modifier
-                // Small space between panel (if visible) and handle
-                .padding(start = if (isPanelExpanded) 4.dp else 0.dp)
-                .background(handleBackgroundColor, CircleShape) // Circular background for handle
+                .padding(end = if (isPanelExpanded) 4.dp else 0.dp)
+                .background(handleBackgroundColor, CircleShape)
         ) {
             Icon(
                 imageVector = if (isPanelExpanded) handleExpandedIcon else handleIcon,
                 contentDescription = if (isPanelExpanded) "隐藏控制面板" else "显示控制面板",
                 tint = handleContentColor
             )
+        }
+
+        // Animated Panel Content
+        AnimatedVisibility(
+            visible = isPanelExpanded,
+            enter = slideInHorizontally(initialOffsetX = { fullWidth -> -fullWidth }),
+            exit = slideOutHorizontally(targetOffsetX = { fullWidth -> -fullWidth })
+        ) {
+            Surface(
+                shape = RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp),
+                shadowElevation = 4.dp,
+                color = panelBackgroundColor,
+                 modifier = Modifier.height(IntrinsicSize.Min)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .width(IntrinsicSize.Max),
+                    horizontalAlignment = Alignment.Start,
+                    verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically)
+                ) {
+                    // Simulate Button
+                    Button(
+                        onClick = onSimulate,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = buttonContainerColor,
+                            contentColor = buttonContentColor
+                        )
+                    ) {
+                        Text("模拟地震")
+                    }
+                    // Cancel Button
+                    Button(
+                        onClick = onCancel,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = buttonContainerColor,
+                            contentColor = buttonContentColor
+                        )
+                    ) {
+                        Text("取消模拟")
+                    }
+                }
+            }
         }
     }
 }

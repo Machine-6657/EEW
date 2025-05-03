@@ -17,6 +17,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 // 高德地图相关类引用
+import com.amap.api.maps.AMap
+import com.amap.api.maps.CameraUpdateFactory
+import com.amap.api.maps.model.LatLng
+import com.amap.api.maps.model.LatLngBounds
+import com.amap.api.maps.model.Polyline
+import com.amap.api.maps.model.PolylineOptions
+import com.amap.api.maps.model.Circle
+import com.amap.api.maps.model.CircleOptions
 import com.example.eewapp.data.Earthquake
 import com.example.eewapp.data.EarthquakeImpact
 import com.example.eewapp.data.UserLocation
@@ -24,7 +32,7 @@ import com.example.eewapp.ui.utils.ColorUtils
 import kotlinx.coroutines.delay
 import com.example.eewapp.data.ShakingIntensity
 // 使用Java反射机制处理可能的引用问题
-import java.lang.reflect.Method
+// import java.lang.reflect.Method
 
 /**
  * 在地图上渲染地震相关内容
@@ -84,12 +92,13 @@ fun EarthquakeAMapContent(
             fillColor = android.graphics.Color.argb(20, 30, 144, 255) // 低透明度的亮蓝色 - 用户圈使用蓝色
         )
         
-        // 连接用户和震中的直线 - 使用震级颜色，不使用蓝色
+        // 连接用户和震中的直线 - 使用直接调用
         AMapPolyline(
-            aMap = aMap,
+            aMap = aMap as? AMap,
             points = listOf(userLatLng, epicenter),
-            color = android.graphics.Color.argb(150, r, g, b), // 使用震级颜色的半透明版本
-            width = 3f
+            color = android.graphics.Color.rgb(255, 165, 0),
+            width = 12f,
+            isDashed = true
         )
         
         // 计算边界，但不自动移动相机
@@ -129,47 +138,47 @@ fun EarthquakeAMapContent(
 }
 
 /**
- * 地图上的线条
+ * 地图上的线条 - Refactored to use direct SDK calls
  */
 @Composable
 fun AMapPolyline(
-    aMap: Any,
-    points: List<Any>,
+    aMap: AMap?,
+    points: List<LatLng>,
     color: Int,
-    width: Float
+    width: Float,
+    isDashed: Boolean = false
 ) {
-    DisposableEffect(points, color, width) {
-        val polyline = try {
-            // 使用反射创建PolylineOptions
-            val polylineOptionsClass = Class.forName("com.amap.api.maps.model.PolylineOptions")
-            val polylineOptions = polylineOptionsClass.newInstance()
-            
-            // 添加所有点
-            val addAllMethod = polylineOptionsClass.getMethod("addAll", java.util.Collection::class.java)
-            addAllMethod.invoke(polylineOptions, points)
-            
-            // 设置颜色
-            val colorMethod = polylineOptionsClass.getMethod("color", Int::class.java)
-            colorMethod.invoke(polylineOptions, color)
-            
-            // 设置宽度
-            val widthMethod = polylineOptionsClass.getMethod("width", Float::class.java)
-            widthMethod.invoke(polylineOptions, width)
-            
-            // 添加到地图
-            val addPolylineMethod = aMap.javaClass.getMethod("addPolyline", polylineOptionsClass)
-            addPolylineMethod.invoke(aMap, polylineOptions)
-        } catch (e: Exception) {
-            Log.e("AMapPolyline", "创建折线失败", e)
-            null
+    if (aMap == null) {
+        Log.w("AMapPolyline", "AMap instance is null, cannot add polyline.")
+        return
+    }
+
+    DisposableEffect(points, color, width, isDashed) {
+        val options = PolylineOptions()
+
+        points.forEach { point ->
+            options.add(point)
         }
-        
+
+        options.color(color)
+        options.width(width)
+        if (isDashed) {
+            options.setDottedLine(true)
+            Log.d("AMapPolyline", "Dotted line enabled using setDottedLine.")
+        }
+
+        var polyline: Polyline? = null
+        try {
+             polyline = aMap.addPolyline(options)
+             Log.d("AMapPolyline", "Polyline added successfully.")
+        } catch (e: Exception) {
+            Log.e("AMapPolyline", "添加折线失败", e)
+        }
+
         onDispose {
             try {
-                if (polyline != null) {
-                    val removeMethod = polyline.javaClass.getMethod("remove")
-                    removeMethod.invoke(polyline)
-                }
+                polyline?.remove()
+                Log.d("AMapPolyline", "Polyline removed.")
             } catch (e: Exception) {
                 Log.e("AMapPolyline", "移除折线失败", e)
             }
@@ -189,8 +198,8 @@ fun EarthquakeWaveAnimationOnMap(
     // 波的数量，增加波的数量
     val waveCount = 5
     
-    // 波的颜色
-    val waveColor = ColorUtils.getWaveColorInt(impact.intensity)
+    // 波的颜色 - 修改为根据震级获取颜色，并调亮
+    val waveColor = getLighterMagnitudeColor(impact.earthquake.magnitude)
     
     // 波的最大半径（米）
     val maxRadius = impact.distanceFromUser * 1000 // 转为米
@@ -280,7 +289,7 @@ fun EarthquakeWaveAnimationOnMap(
             if (wave.value == null) return@LaunchedEffect
             
             // 错开启动
-            delay(index * 800L) // 增加错开时间，使波浪更明显
+//            delay(index * 800L) // 增加错开时间，使波浪更明显
             
             try {
                 // 动画循环
@@ -334,7 +343,7 @@ fun EarthquakeWaveAnimationOnMap(
                     }
                     
                     // 在波完成一轮后稍作延迟，使波浪更加明显
-                    delay(200)
+//                    delay(200)
                 }
             } catch (e: Exception) {
                 // 处理可能的异常
@@ -345,17 +354,10 @@ fun EarthquakeWaveAnimationOnMap(
 }
 
 /**
- * 创建LatLng对象
+ * 创建LatLng对象 - Refactored to use direct SDK calls
  */
-private fun createLatLng(latitude: Double, longitude: Double): Any {
-    try {
-        val latLngClass = Class.forName("com.amap.api.maps.model.LatLng")
-        val constructor = latLngClass.getConstructor(Double::class.java, Double::class.java)
-        return constructor.newInstance(latitude, longitude)
-    } catch (e: Exception) {
-        Log.e("EarthquakeAMapContent", "创建LatLng失败", e)
-        throw e
-    }
+private fun createLatLng(latitude: Double, longitude: Double): LatLng {
+    return LatLng(latitude, longitude)
 }
 
 /**
@@ -376,7 +378,8 @@ private fun createLatLngBoundsBuilder(): Any {
  */
 private fun includeInBounds(builder: Any, latLng: Any) {
     try {
-        val includeMethod = builder.javaClass.getMethod("include", latLng.javaClass)
+        val latLngClass = Class.forName("com.amap.api.maps.model.LatLng")
+        val includeMethod = builder.javaClass.getMethod("include", latLngClass)
         includeMethod.invoke(builder, latLng)
     } catch (e: Exception) {
         Log.e("EarthquakeAMapContent", "添加点到LatLngBounds.Builder失败", e)
@@ -398,43 +401,17 @@ private fun buildBounds(builder: Any): Any {
 }
 
 /**
- * 移动相机到指定位置
+ * 移动相机到指定位置 - Refactored to use direct SDK calls
  */
-private fun animateCamera(aMap: Any, latLng: Any, zoom: Float) {
-    try {
-        // 获取CameraUpdateFactory类
-        val cameraUpdateFactoryClass = Class.forName("com.amap.api.maps.CameraUpdateFactory")
-        
-        // 调用静态方法newLatLngZoom
-        val newLatLngZoomMethod = cameraUpdateFactoryClass.getMethod("newLatLngZoom", latLng.javaClass, Float::class.java)
-        val cameraUpdate = newLatLngZoomMethod.invoke(null, latLng, zoom)
-        
-        // 调用地图的animateCamera方法
-        val animateCameraMethod = aMap.javaClass.getMethod("animateCamera", Class.forName("com.amap.api.maps.CameraUpdate"))
-        animateCameraMethod.invoke(aMap, cameraUpdate)
-    } catch (e: Exception) {
-        Log.e("EarthquakeAMapContent", "移动相机失败", e)
-    }
+private fun animateCamera(aMap: AMap?, latLng: LatLng, zoom: Float) {
+    aMap?.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, zoom))
 }
 
 /**
- * 移动相机到指定边界
+ * 移动相机到指定边界 - Refactored to use direct SDK calls
  */
-private fun animateCameraWithBounds(aMap: Any, bounds: Any, padding: Int) {
-    try {
-        // 获取CameraUpdateFactory类
-        val cameraUpdateFactoryClass = Class.forName("com.amap.api.maps.CameraUpdateFactory")
-        
-        // 调用静态方法newLatLngBounds
-        val newLatLngBoundsMethod = cameraUpdateFactoryClass.getMethod("newLatLngBounds", bounds.javaClass, Int::class.java)
-        val cameraUpdate = newLatLngBoundsMethod.invoke(null, bounds, padding)
-        
-        // 调用地图的animateCamera方法
-        val animateCameraMethod = aMap.javaClass.getMethod("animateCamera", Class.forName("com.amap.api.maps.CameraUpdate"))
-        animateCameraMethod.invoke(aMap, cameraUpdate)
-    } catch (e: Exception) {
-        Log.e("EarthquakeAMapContent", "移动相机到边界失败", e)
-    }
+private fun animateCameraWithBounds(aMap: AMap?, bounds: LatLngBounds, padding: Int) {
+    aMap?.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, padding))
 }
 
 /**
@@ -444,13 +421,25 @@ private fun getWaveColor(intensity: ShakingIntensity): Color {
     return ColorUtils.getWaveColor(intensity)
 }
 
+// Helper function to get a lighter version of the magnitude color
+private fun getLighterMagnitudeColor(magnitude: Double, lightnessFactor: Float = 2f, saturationFactor: Float = 0.3f): Int {
+    val originalColor = getMagnitudeColor(magnitude)
+    val hsv = FloatArray(3)
+    android.graphics.Color.colorToHSV(originalColor, hsv)
+    // Increase Value (brightness/lightness)
+    hsv[2] = (hsv[2] * lightnessFactor).coerceIn(0f, 1f)
+    // Decrease Saturation slightly
+    hsv[1] = (hsv[1] * saturationFactor).coerceIn(0f, 1f)
+    return android.graphics.Color.HSVToColor(hsv)
+}
+
 // 根据震级获取对应的颜色
 private fun getMagnitudeColor(magnitude: Double): Int {
     return when {
-        magnitude >= 6.0 -> android.graphics.Color.rgb(255, 0, 0) // 红色 (6级及以上)
-        magnitude >= 5.0 -> android.graphics.Color.rgb(255, 165, 0) // 橙色 (5-5.9级)
-        magnitude >= 4.0 -> android.graphics.Color.rgb(255, 255, 0) // 黄色 (4-4.9级)
-        else -> android.graphics.Color.rgb(0, 128, 0) // 绿色 (小于4级)
+        magnitude >= 6.0 -> android.graphics.Color.rgb(239, 83, 80) // 柔和红色 (6级及以上)
+        magnitude >= 5.0 -> android.graphics.Color.rgb(255, 167, 38) // 柔和橙色 (5-5.9级)
+        magnitude >= 4.0 -> android.graphics.Color.rgb(255, 220, 79) // 更暗的黄色 (4-4.9级)
+        else -> android.graphics.Color.rgb(129, 199, 132) // 柔和绿色 (小于4级)
     }
 }
 

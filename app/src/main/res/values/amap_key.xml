@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+    高德地图 API Key
+    请在高德开放平台申请：https://lbs.amap.com/
+    
+    注意：这里需要填入您自己申请的高德地图 API Key
+    如果使用测试 Key，可能会导致地图无法显示
+    -->
+    <string name="amap_key">16efc0a1537f18feac7c4d6a5f45d5a7</string>
+</resources> 

@@ -358,7 +358,7 @@ fun EarthquakeAMap(
                     buttonColor = MaterialTheme.colorScheme.primary
                 )
                 
-                // 模拟地震定位按钮（红色）
+                // 定位到最新模拟的地震按钮（红色） - 保持此按钮用于定位
                 MapControlButton(
                     onClick = {
                         // 定位到最新模拟的地震
@@ -371,15 +371,18 @@ fun EarthquakeAMap(
                             aMap?.let { animateCamera(it, epicenter, zoomLevel) }
                         }
                     },
-                    icon = Icons.Filled.Warning,
-                    contentDescription = "定位到震中",
+                    icon = Icons.Filled.Warning, // 可以考虑换个图标，比如 BugReport 或 Science
+                    contentDescription = "定位到最新模拟震中",
                     buttonColor = ComposeColor.Red
                 )
             }
         }
         
-        // 添加模拟地震按钮
-        SimulateEarthquakeButton(
+        // --- 集成可折叠控制面板 ---
+        CollapsibleControlPanel(
+            modifier = Modifier
+                .align(Alignment.CenterEnd) // Align to center-right
+                .padding(end = 8.dp),      // Padding from edge
             onSimulate = {
                 // 只有当用户位置可用时才能模拟地震
                 if (userLocation != null) {
@@ -524,50 +527,52 @@ fun EarthquakeAMap(
                     lastSimulatedEarthquake = simulatedEarthquake
                 }
             },
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(top = 16.dp, start = 16.dp)
+            onCancel = {
+                // TODO: 实现取消模拟地震的逻辑
+                // 例如：将 localSelectedEarthquake 和 selectedImpact 设置为 null？
+                // 或者如果你有专门的ViewModel状态来表示模拟状态，在这里重置它
+                Log.d("CollapsibleControlPanel", "取消模拟按钮被点击")
+                 localSelectedEarthquake = null // 示例：清除当前选中的模拟地震
+                 selectedImpact = null         // 示例：清除当前选中的模拟影响
+            }
         )
-        
-        // 显示地震信息卡片
-        if (localSelectedEarthquake != null || currentImpact != null) {
-            val earthquake = localSelectedEarthquake ?: currentImpact?.earthquake
-            val impact = selectedImpact ?: currentImpact
-            
-            if (earthquake != null && impact != null) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                        .padding(start = 16.dp, end = 16.dp, bottom = 120.dp, top = 16.dp) // 增加底部padding，确保不与导航栏重叠
-                ) {
-                    EarthquakeInfoCardCompact(
-                        earthquake = earthquake,
-                        impact = impact,
-                        onClose = {
-                            if (currentImpact == null) {
-                                localSelectedEarthquake = null
-                                selectedImpact = null
-                            }
-                        }
-                    )
-                }
+        // --- ---
+
+        // 显示当前选中的地震信息卡片 (如果选中且无当前影响)
+        AnimatedVisibility(
+            visible = localSelectedEarthquake != null && currentImpact == null,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) {
+            localSelectedEarthquake?.let { eq ->
+                // 如果能找到对应的impact信息，则显示完整卡片，否则显示简化卡片
+                val impactToShow = significantEarthquakes.find { it.earthquake.id == eq.id } ?: selectedImpact
+                if (impactToShow != null){
+                     EarthquakeInfoCardCompact(earthquake = eq, impact = impactToShow, onClose = { localSelectedEarthquake = null })
+                 } else {
+                    // 可以选择显示一个更简化的卡片，如果impact找不到
+                    // SimplifiedEarthquakeCard(earthquake = eq, onClose = { localSelectedEarthquake = null })
+                    Log.d("EarthquakeAMap", "Selected earthquake ${eq.title} has no matching impact data.")
+                 }
             }
         }
-        
-        // 如果正在显示实时地震预警，显示加入监测按钮
-        if (currentImpact != null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.TopCenter)
-                    .padding(top = 16.dp)
-            ) {
-                // 如果当前是显示预警，显示加入实时监测按钮
-                JoinMonitoringButton(
-                    onClick = { /* TODO: 实现加入实时监测功能 */ },
-                    modifier = Modifier.align(Alignment.Center)
-                )
+
+        // 显示地震信息卡片 (显示当前影响的地震，或者由模拟地震触发的)
+        AnimatedVisibility(
+            visible = selectedImpact != null, // Modified: Show card if selectedImpact is not null
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) {
+            selectedImpact?.let { impact ->
+                EarthquakeInfoCardCompact(earthquake = impact.earthquake, impact = impact, onClose = {
+                    selectedImpact = null
+                    // 如果关闭的是模拟地震卡片，也清除选中的模拟地震
+                    if (localSelectedEarthquake?.id?.startsWith("simulated-") == true) {
+                         localSelectedEarthquake = null
+                    }
+                })
             }
         }
     }
@@ -936,74 +941,89 @@ private fun formatDate(date: Date): String {
 }
 
 /**
- * 模拟地震按钮
+ * 一个可从右侧展开/折叠的控制面板 Composable.
+ *
+ * @param modifier Modifier to be applied to the Row container (use for alignment in parent).
+ * @param panelBackgroundColor 背景颜色.
+ * @param handleIcon Handle icon when collapsed.
+ * @param handleExpandedIcon Handle icon when expanded.
+ * @param handleBackgroundColor 背景颜色.
+ * @param handleContentColor icon 颜色.
+ * @param onSimulate Callback when the simulate button is clicked.
+ * @param onCancel Callback when the cancel button is clicked.
  */
 @Composable
-fun SimulateEarthquakeButton(
+fun CollapsibleControlPanel(
+    modifier: Modifier = Modifier,
+    panelBackgroundColor: ComposeColor = MaterialTheme.colorScheme.surfaceVariant,
+    handleIcon: androidx.compose.ui.graphics.vector.ImageVector = Icons.Default.ChevronLeft, // Icon when collapsed (pointing left to open)
+    handleExpandedIcon: androidx.compose.ui.graphics.vector.ImageVector = Icons.Default.ChevronRight, // Icon when expanded (pointing right to close)
+    handleBackgroundColor: ComposeColor = MaterialTheme.colorScheme.primaryContainer,
+    handleContentColor: ComposeColor = MaterialTheme.colorScheme.onPrimaryContainer,
     onSimulate: () -> Unit,
-    modifier: Modifier = Modifier
+    onCancel: () -> Unit
 ) {
-    // 定义颜色常量
-    val RedEmphasis = ComposeColor(0xFF68C29F) // 绿色强调色，原为红色(0xFFD32F2F)
-    val TextPrimary = ComposeColor.Black // 主要文本颜色
-    val TextSecondary = ComposeColor.DarkGray // 次要文本颜色
-    val BackgroundPrimary = ComposeColor.White // 主要背景色
+    var isPanelExpanded by remember { mutableStateOf(false) }
 
-    Card(
-        modifier = modifier
-            .padding(8.dp),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = BackgroundPrimary
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 4.dp
-        )
+    Row(
+        modifier = modifier, // Allows caller to position this Row (e.g., align to end)
+        verticalAlignment = Alignment.CenterVertically // Align handle and panel vertically
     ) {
-        Column(
-            modifier = Modifier.padding(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        // Animated Panel Content (Slides in/out to the left of the handle)
+        AnimatedVisibility(
+            visible = isPanelExpanded,
+            // Animate entering from the right edge of its container
+            enter = slideInHorizontally(initialOffsetX = { fullWidth -> fullWidth }),
+            // Animate exiting towards the right edge of its container
+            exit = slideOutHorizontally(targetOffsetX = { fullWidth -> fullWidth })
         ) {
-            androidx.compose.material3.Button(
-                onClick = onSimulate,
-                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                    containerColor = RedEmphasis
-                ),
-                shape = RoundedCornerShape(4.dp),
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+            Surface(
+                // Give the panel rounded corners only on the left side
+                shape = RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp),
+                shadowElevation = 4.dp,
+                color = panelBackgroundColor,
+                // Optional: Limit the panel's height if needed
+                 modifier = Modifier.height(IntrinsicSize.Min) // Adjust height based on content
             ) {
-                Icon(
-                    imageVector = Icons.Filled.Warning,
-                    contentDescription = "模拟地震",
-                    tint = ComposeColor.White,
+                Column(
                     modifier = Modifier
-                        .size(20.dp)
-                        .padding(end = 4.dp)
-                )
-                
-                Text(
-                    text = "点击生成模拟地震",
-                    color = ComposeColor.White,
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        // Control the width based on the widest button
+                        .width(IntrinsicSize.Max),
+                    horizontalAlignment = Alignment.Start, // Align buttons to the start (left)
+                    // Space buttons and center them vertically within the column
+                    verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically)
+                ) {
+                    // Simulate Button
+                    Button(
+                        onClick = onSimulate,
+                        modifier = Modifier.fillMaxWidth() // Make button fill panel width
+                    ) {
+                        Text("模拟地震")
+                    }
+                    // Cancel Button
+                    Button(
+                        onClick = onCancel,
+                        modifier = Modifier.fillMaxWidth() // Make button fill panel width
+                    ) {
+                        Text("取消模拟")
+                    }
+                }
             }
-            
-            // 说明文本
-            Text(
-                text = "点击生成随机强度的地震",
-                color = TextSecondary,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(vertical = 4.dp, horizontal = 8.dp)
-            )
-            
-            // 强度说明
-            Text(
-                text = "强震感: 6.0-8.0级 | 中震感: 5.0-6.0级 | 弱震感: 4.0-5.0级",
-                color = TextSecondary,
-                style = MaterialTheme.typography.bodySmall,
-                fontSize = 10.sp,
-                modifier = Modifier.padding(bottom = 4.dp, start = 8.dp, end = 8.dp),
-                lineHeight = 14.sp
+        }
+
+        // Handle (Icon Button) - Always visible at the very end (right) of the Row
+        IconButton(
+            onClick = { isPanelExpanded = !isPanelExpanded },
+            modifier = Modifier
+                // Small space between panel (if visible) and handle
+                .padding(start = if (isPanelExpanded) 4.dp else 0.dp)
+                .background(handleBackgroundColor, CircleShape) // Circular background for handle
+        ) {
+            Icon(
+                imageVector = if (isPanelExpanded) handleExpandedIcon else handleIcon,
+                contentDescription = if (isPanelExpanded) "隐藏控制面板" else "显示控制面板",
+                tint = handleContentColor
             )
         }
     }

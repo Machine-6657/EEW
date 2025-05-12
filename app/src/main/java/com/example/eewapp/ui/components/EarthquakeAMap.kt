@@ -20,6 +20,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,8 +32,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,6 +51,7 @@ import com.example.eewapp.utils.EarthquakeUtils.calculateDistance
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.TimeUnit
 import androidx.compose.ui.graphics.Color as ComposeColor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -93,6 +98,15 @@ fun EarthquakeAMap(
     
     val context = LocalContext.current // 获取 Context
     val scope = rememberCoroutineScope() // 获取 CoroutineScope for flashlight
+
+    // --- START: 7-Day Filter Logic (inside map content) ---
+    val sevenDaysAgoMillis = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(7)
+    // Filter the lists passed into the Composable for use within the map content
+    val recentEarthquakes = earthquakes.filter { it.time.time >= sevenDaysAgoMillis }
+    val recentSignificantEarthquakes = significantEarthquakes.filter { it.earthquake.time.time >= sevenDaysAgoMillis }
+    // --- END: 7-Day Filter Logic ---
+
+
 
     // --- START: SoundPool Management ---
     // Remember the SoundPool and soundId
@@ -313,13 +327,15 @@ fun EarthquakeAMap(
                 }
             },
             onMapClick = { latLng ->
-                // 点击空白处关闭地震详情
-                if (currentImpact == null) {
-                    localSelectedEarthquake = null
-                    selectedImpact = null
-                }
+                // 点击空白处关闭地震详情 (Only if not simulating)
+                if (currentImpact == null && selectedImpact?.earthquake?.id?.startsWith("simulated-") != true) {
+                     localSelectedEarthquake = null
+                     selectedImpact = null
+                 }
             }
         ) { map ->
+           
+
             // 如果有当前影响的地震，显示地震震中和波纹
             currentImpact?.let { impact ->
                 val earthquake = impact.earthquake
@@ -335,70 +351,84 @@ fun EarthquakeAMap(
 
             // 如果没有当前影响的地震...
             if (currentImpact == null) {
-                // --- Add check for simulation state --- 
                 val isSimulating = selectedImpact != null && localSelectedEarthquake?.id?.startsWith("simulated-") == true
-                // --- ---------------------------- ---
 
-                // --- Only draw all earthquakes if NOT simulating ---
+                // --- Only draw recent earthquakes if NOT simulating ---
                 if (!isSimulating) {
-                    // 显示所有地震
-                    earthquakes.forEach { earthquake ->
+                    // 显示 *近7天* 的所有地震 (Use filtered list)
+                    recentEarthquakes.forEach { earthquake -> // Iterate over filtered list
                         val position = createLatLng(earthquake.location.latitude, earthquake.location.longitude)
                         val magnitudeColor = getMagnitudeColor(earthquake.magnitude)
+                        // Draw small background marker
                         AMapScreenMarker(
                             aMap = map,
                             position = position,
                             color = magnitudeColor,
-                            size = 6f,
-                            outerRingSize = 10f,
+                            size = 10f, // Size for non-selected markers
+                            outerRingSize = 18f,
                             outerRingAlpha = 80
                         )
+                        // Make it clickable
                         AMapCircleClickable(
                             aMap = map,
                             center = position,
-                            radius = 5000.0,
+                            radius = 5000.0, // Clickable radius
                             strokeWidth = 0f,
                             strokeColor = android.graphics.Color.TRANSPARENT,
                             fillColor = android.graphics.Color.TRANSPARENT,
                             onClick = {
+                                // Set the selected earthquake (it's inherently recent because it's from recentEarthquakes)
                                 localSelectedEarthquake = earthquake
-                                selectedImpact = significantEarthquakes.find { it.earthquake.id == earthquake.id }
-                                true 
+                                // Find impact data only from the *recent* significant list
+                                selectedImpact = recentSignificantEarthquakes.find { it.earthquake.id == earthquake.id }
+                                Log.d("EarthquakeAMap", "Clicked recent earthquake: ${earthquake.title}, Found impact: ${selectedImpact != null}")
+                                true
                             }
                         )
                     }
                 }
                 // --- ------------------------------------------- ---
 
-                // 显示选中的地震详情 (可以是模拟的，也可以是手动点的)
+                // 显示选中的地震详情 (可以是模拟的，也可以是手动点的 *近7天* 的地震)
                 if (localSelectedEarthquake != null) {
-                    val earthquake = localSelectedEarthquake!!
-                    val epicenter = createLatLng(earthquake.location.latitude, earthquake.location.longitude)
-                    val magnitudeColor = getMagnitudeColor(earthquake.magnitude)
+                     // Ensure the selected earthquake is either simulated or recent before showing details/highlight
+                     val earthquake = localSelectedEarthquake!! // Use non-null assertion as we check non-null condition
+                     if (earthquake.id.startsWith("simulated-") || earthquake.time.time >= sevenDaysAgoMillis) {
+                         val epicenter = createLatLng(earthquake.location.latitude, earthquake.location.longitude)
+                         val magnitudeColor = getMagnitudeColor(earthquake.magnitude)
 
-                    // 高亮显示选中的地震 (模拟或手动)
-                    AMapScreenMarker(
-                        aMap = map,
-                        position = epicenter,
-                        color = magnitudeColor,
-                        size = 14f,
-                        outerRingSize = 24f,
-                        outerRingAlpha = 100
-                    )
+                         // 高亮显示选中的地震 (模拟或手动选中的近期地震)
+                         AMapScreenMarker(
+                             aMap = map,
+                             position = epicenter,
+                             color = magnitudeColor,
+                             size = 14f, // Larger size for selected/highlighted
+                             outerRingSize = 24f,
+                             outerRingAlpha = 100
+                         )
 
-                    // 如果有影响数据 (模拟或手选对应的)，显示波纹效果和连线
-                    if (selectedImpact != null) {
-                        EarthquakeAMapContent(
-                            aMap = map,
-                            earthquake = earthquake,
-                            userLocation = userLocation,
-                            impact = selectedImpact,
-                            zoomLevel = zoomLevel
-                        )
-                    }
+                         // 如果有影响数据 (模拟或手选对应的 *近7天* 的)，显示波纹效果和连线
+                         // selectedImpact would have been found from recentSignificantEarthquakes or set by simulation
+                         if (selectedImpact != null && selectedImpact!!.earthquake.id == earthquake.id) { // Ensure impact matches selected
+                             EarthquakeAMapContent(
+                                 aMap = map,
+                                 earthquake = earthquake,
+                                 userLocation = userLocation,
+                                 impact = selectedImpact!!, // Use the found/simulated impact
+                                 zoomLevel = zoomLevel
+                             )
+                         }
+                     } else {
+                          // If a non-recent, non-simulated earthquake is somehow selected, clear it to avoid confusion
+                          LaunchedEffect(localSelectedEarthquake) { // Use LaunchedEffect to avoid state issues during composition
+                               Log.w("EarthquakeAMap", "Stale non-recent earthquake selected (${localSelectedEarthquake?.title}), clearing selection.")
+                               localSelectedEarthquake = null
+                               selectedImpact = null
+                          }
+                     }
                 }
 
-                // 如果用户位置可用，显示用户位置标记 (始终显示，无论是否模拟)
+                // 如果用户位置可用，显示用户位置标记 (始终显示)
                 if (userLocation != null) {
                     val userLatLng = createLatLng(userLocation.latitude, userLocation.longitude)
                     AMapScreenMarker(
@@ -438,39 +468,88 @@ fun EarthquakeAMap(
                 .padding(top = 16.dp, end = 16.dp)
         ) {
             Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally // 水平居中图标和文本
             ) {
+                // 震中按钮 (红色)
+                Surface(
+                    modifier = Modifier
+                        .size(width = 56.dp, height = 56.dp) // 定义按钮尺寸
+                        .shadow(4.dp, RoundedCornerShape(12.dp)) // 添加阴影和圆角
+                        .clip(RoundedCornerShape(12.dp)) // 裁剪成圆角矩形
+                        .clickable {
+                            // 定位到最新模拟的地震
+                            lastSimulatedEarthquake?.let { earthquake ->
+                                val epicenter = createLatLng(
+                                    earthquake.location.latitude,
+                                    earthquake.location.longitude
+                                )
+                                // 只移动镜头到地震位置，不改变选中状态
+                                aMap?.let { animateCamera(it, epicenter, zoomLevel) }
+                            }
+                        },
+                    color = ComposeColor.White, // 背景色设为白色
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier.padding(4.dp) // 内部间距
+                    ) {
+                        // TODO: 替换为图片中的同心圆图标，这里暂时用一个红色图标代替
+                        Icon(
+                            // painter = painterResource(id = R.drawable.ic_epicenter_icon), // 暂时注释掉，因为资源不存在
+                            imageVector = Icons.Filled.Adjust, // 使用系统图标作为临时替代
+                            contentDescription = "定位到最新模拟震中",
+                            tint = ComposeColor.Red, // 图标颜色设为红色
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.height(1.5.dp)) // 图标和文字间距
+                        Text(
+                            text = "震中",
+                            color = ComposeColor.Red, // 文字颜色设为红色
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
                 // 我的位置按钮（蓝色）
-                MapControlButton(
-                    onClick = {
-                        userLocation?.let { location ->
-                            val userLatLng = createLatLng(location.latitude, location.longitude)
-                            // 只移动镜头到用户位置，不改变其他状态
-                            aMap?.let { animateCamera(it, userLatLng, zoomLevel) }
-                        }
-                    },
-                    icon = Icons.Filled.MyLocation,
-                    contentDescription = "定位到当前位置",
-                    buttonColor = MaterialTheme.colorScheme.primary
-                )
-                
-                // 定位到最新模拟的地震按钮（红色） - 保持此按钮用于定位
-                MapControlButton(
-                    onClick = {
-                        // 定位到最新模拟的地震
-                        lastSimulatedEarthquake?.let { earthquake ->
-                            val epicenter = createLatLng(
-                                earthquake.location.latitude,
-                                earthquake.location.longitude
-                            )
-                            // 只移动镜头到地震位置，不改变选中状态
-                            aMap?.let { animateCamera(it, epicenter, zoomLevel) }
-                        }
-                    },
-                    icon = Icons.Filled.Warning, // 可以考虑换个图标，比如 BugReport 或 Science
-                    contentDescription = "定位到最新模拟震中",
-                    buttonColor = ComposeColor.Red
-                )
+                Surface(
+                    modifier = Modifier
+                        .size(width = 56.dp, height = 56.dp) // 定义按钮尺寸
+                        .shadow(4.dp, RoundedCornerShape(12.dp)) // 添加阴影和圆角
+                        .clip(RoundedCornerShape(12.dp)) // 裁剪成圆角矩形
+                        .clickable {
+                            userLocation?.let { location ->
+                                val userLatLng = createLatLng(location.latitude, location.longitude)
+                                // 只移动镜头到用户位置，不改变其他状态
+                                aMap?.let { animateCamera(it, userLatLng, zoomLevel) }
+                            }
+                        },
+                    color = ComposeColor.White, // 背景色设为白色
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier.padding(4.dp) // 内部间距
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.MyLocation, // 保持原有图标
+                            contentDescription = "定位到当前位置",
+                            tint = ComposeColor(0xFF1E90FF), // 图标颜色设为蓝色
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.height(1.5.dp)) // 图标和文字间距
+                        Text(
+                            text = "我的",
+                            color = ComposeColor(0xFF1E90FF), // 文字颜色设为蓝色
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
             }
         }
         
@@ -640,43 +719,74 @@ fun EarthquakeAMap(
         )
         // --- ---
 
-        // 显示当前选中的地震信息卡片 (如果选中且无当前影响)
+        // 显示当前选中的地震信息卡片 (如果选中且无当前影响, 且选中的是模拟或近7天的)
         AnimatedVisibility(
-            visible = localSelectedEarthquake != null && currentImpact == null,
-            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 95.dp, start = 16.dp, end = 16.dp)
+             visible = localSelectedEarthquake != null && currentImpact == null &&
+                     (localSelectedEarthquake?.id?.startsWith("simulated-") == true || (localSelectedEarthquake?.time?.time ?: 0) >= sevenDaysAgoMillis),
+             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 95.dp, start = 16.dp, end = 16.dp)
         ) {
             localSelectedEarthquake?.let { eq ->
-                // 如果能找到对应的impact信息，则显示完整卡片，否则显示简化卡片
-                val impactToShow = significantEarthquakes.find { it.earthquake.id == eq.id } ?: selectedImpact
-                if (impactToShow != null){
-                     EarthquakeInfoCardCompact(earthquake = eq, impact = impactToShow, onClose = { localSelectedEarthquake = null })
+                // 查找影响数据时，如果是模拟的，直接用 selectedImpact，否则从 recentSignificantEarthquakes 查找
+                val impactToShow = if (eq.id.startsWith("simulated-")) {
+                     selectedImpact // Should be the simulated impact
                  } else {
-                    // 可以选择显示一个更简化的卡片，如果impact找不到
+                     recentSignificantEarthquakes.find { it.earthquake.id == eq.id }
+                 }
+
+                if (impactToShow != null){
+                     EarthquakeInfoCardCompact(
+                         earthquake = eq,
+                         impact = impactToShow,
+                         onClose = {
+                              localSelectedEarthquake = null
+                              // Also clear selectedImpact if it matches the closed earthquake, unless it's the current real impact
+                              if (selectedImpact?.earthquake?.id == eq.id && currentImpact?.earthquake?.id != eq.id) {
+                                   selectedImpact = null
+                              }
+                         }
+                     )
+                 } else {
+                     // 只显示简化卡片或日志，因为没有找到对应的近期重要影响数据
+                    Log.d("EarthquakeAMap", "Selected recent earthquake ${eq.title} has no matching recent significant impact data to show full card.")
+                    // Optionally show a simplified card here:
                     // SimplifiedEarthquakeCard(earthquake = eq, onClose = { localSelectedEarthquake = null })
-                    Log.d("EarthquakeAMap", "Selected earthquake ${eq.title} has no matching impact data.")
                  }
             }
         }
 
         // 显示地震信息卡片 (显示当前影响的地震，或者由模拟地震触发的)
+        // No change needed here as currentImpact is implicitly recent, and simulated impact doesn't need filtering.
         AnimatedVisibility(
-            visible = selectedImpact != null, // Modified: Show card if selectedImpact is not null
+            visible = selectedImpact != null && (selectedImpact?.earthquake?.id == currentImpact?.earthquake?.id || selectedImpact?.earthquake?.id?.startsWith("simulated-") == true),
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 95.dp, start = 16.dp, end = 16.dp)
         ) {
-            selectedImpact?.let { impact ->
-                EarthquakeInfoCardCompact(earthquake = impact.earthquake, impact = impact, onClose = {
-                    selectedImpact = null
-                    // 如果关闭的是模拟地震卡片，也清除选中的模拟地震
-                    if (localSelectedEarthquake?.id?.startsWith("simulated-") == true) {
-                         localSelectedEarthquake = null
-                    }
-                })
-            }
-        }
+             selectedImpact?.let { impact ->
+                 EarthquakeInfoCardCompact(
+                     earthquake = impact.earthquake,
+                     impact = impact,
+                     onClose = {
+                         // Closing the card for the *current* real impact shouldn't clear the impact itself,
+                         // maybe just hide the card? Or perhaps this visibility logic needs refinement.
+                         // For now, closing a simulated impact card will clear both states.
+                         if (impact.earthquake.id.startsWith("simulated-")) {
+                              localSelectedEarthquake = null // Clear simulated selection
+                              selectedImpact = null      // Clear simulated impact
+                         } else if (impact.earthquake.id == currentImpact?.earthquake?.id) {
+                              // If closing the card for the current real impact, maybe only clear localSelectedEarthquake?
+                              // Depends on desired behavior. Let's clear local for now.
+                              if (localSelectedEarthquake?.id == impact.earthquake.id) {
+                                   localSelectedEarthquake = null
+                              }
+                              // Do NOT clear selectedImpact if it's the currentImpact
+                         }
+                     }
+                 )
+             }
+         }
     }
 }
 

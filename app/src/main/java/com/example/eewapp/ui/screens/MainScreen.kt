@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -177,7 +178,8 @@ fun BottomNavigation(
 
     BottomAppBar(
         modifier = modifier
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .height(60.dp),
         containerColor = BackgroundPrimary, // 白色背景
         contentColor = TextPrimary
     ) {
@@ -189,7 +191,7 @@ fun BottomNavigation(
             colors = androidx.compose.material3.NavigationBarItemDefaults.colors(
                 selectedIconColor = RedEmphasis,
                 selectedTextColor = RedEmphasis,
-                indicatorColor = RedEmphasis.copy(alpha = 0.1f),
+                indicatorColor = Color.Transparent,
                 unselectedIconColor = TextSecondary,
                 unselectedTextColor = TextSecondary
             )
@@ -197,12 +199,12 @@ fun BottomNavigation(
         NavigationBarItem(
             selected = selectedTab == 1,
             onClick = { onTabSelected(1) },
-            icon = { Icon(Icons.Default.List, contentDescription = "列表") },
-            label = { Text("列表") },
+            icon = { Icon(Icons.Default.List, contentDescription = "地震") },
+            label = { Text("地震") },
             colors = androidx.compose.material3.NavigationBarItemDefaults.colors(
                 selectedIconColor = RedEmphasis,
                 selectedTextColor = RedEmphasis,
-                indicatorColor = RedEmphasis.copy(alpha = 0.1f),
+                indicatorColor = Color.Transparent,
                 unselectedIconColor = TextSecondary,
                 unselectedTextColor = TextSecondary
             )
@@ -210,12 +212,12 @@ fun BottomNavigation(
         NavigationBarItem(
             selected = selectedTab == 2,
             onClick = { onTabSelected(2) },
-            icon = { Icon(Icons.Default.Info, contentDescription = "安全") },
-            label = { Text("安全") },
+            icon = { Icon(Icons.Default.Info, contentDescription = "指南") },
+            label = { Text("指南") },
             colors = androidx.compose.material3.NavigationBarItemDefaults.colors(
                 selectedIconColor = RedEmphasis,
                 selectedTextColor = RedEmphasis,
-                indicatorColor = RedEmphasis.copy(alpha = 0.1f),
+                indicatorColor = Color.Transparent,
                 unselectedIconColor = TextSecondary,
                 unselectedTextColor = TextSecondary
             )
@@ -228,7 +230,7 @@ fun BottomNavigation(
             colors = androidx.compose.material3.NavigationBarItemDefaults.colors(
                 selectedIconColor = RedEmphasis,
                 selectedTextColor = RedEmphasis,
-                indicatorColor = RedEmphasis.copy(alpha = 0.1f),
+                indicatorColor = Color.Transparent,
                 unselectedIconColor = TextSecondary,
                 unselectedTextColor = TextSecondary
             )

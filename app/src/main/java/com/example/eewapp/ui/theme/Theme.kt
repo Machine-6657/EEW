@@ -63,11 +63,13 @@ fun EEWappTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = GreenEmphasis.toArgb() // 使用绿色作为状态栏颜色
+            // window.statusBarColor = GreenEmphasis.toArgb() // 注释掉原来的绿色设置
+            window.statusBarColor = Color.White.toArgb() // 设置状态栏颜色为白色
             
             // 设置系统UI控制
             WindowCompat.getInsetsController(window, view).apply {
-                isAppearanceLightStatusBars = false
+                // isAppearanceLightStatusBars = false // 原来的设置，浅色图标/文字
+                isAppearanceLightStatusBars = true // true 表示状态栏图标/文字为深色
                 isAppearanceLightNavigationBars = true
             }
             

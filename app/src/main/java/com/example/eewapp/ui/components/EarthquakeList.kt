@@ -48,6 +48,7 @@ import com.example.eewapp.ui.theme.Surface
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.TimeUnit
 
 /**
  * A list of earthquakes
@@ -68,6 +69,12 @@ fun EarthquakeList(
     val BackgroundPrimary = Color.White // 主要背景色
     val DividerColor = Color.LightGray.copy(alpha = 0.5f) // 分隔线颜色
 
+    // --- START: 7-Day Filter Logic ---
+    val sevenDaysAgoMillis = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(7)
+    val recentEarthquakes = earthquakes.filter { it.time.time >= sevenDaysAgoMillis }
+    val recentSignificantEarthquakes = significantEarthquakes.filter { it.earthquake.time.time >= sevenDaysAgoMillis }
+    // --- END: 7-Day Filter Logic ---
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -82,7 +89,7 @@ fun EarthquakeList(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = "中国地震信息",
+                text = "世界地震信息",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = TextPrimary
@@ -97,16 +104,16 @@ fun EarthquakeList(
             }
         }
         
-        // 检查是否有数据
-        if (earthquakes.isEmpty()) {
+        // 检查是否有 *过滤后* 的数据
+        if (recentEarthquakes.isEmpty()) {
             // 空状态UI
             EmptyStateContent(onRefresh = onRefresh, isLoading = isLoading)
         } else {
             // 有数据，显示正常内容
-            // Significant earthquakes section
-            if (significantEarthquakes.isNotEmpty()) {
+            // Significant earthquakes section (Use filtered list)
+            if (recentSignificantEarthquakes.isNotEmpty()) {
                 Text(
-                    text = "重要地震",
+                    text = "重要地震 (近7天)",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = RedEmphasis,
@@ -118,7 +125,7 @@ fun EarthquakeList(
                         .height(200.dp)
                         .padding(horizontal = 16.dp)
                 ) {
-                    items(significantEarthquakes) { impact ->
+                    items(recentSignificantEarthquakes) { impact ->
                         SignificantEarthquakeItem(
                             impact = impact,
                             onClick = { onEarthquakeClick(impact.earthquake) }
@@ -133,9 +140,9 @@ fun EarthquakeList(
                 )
             }
             
-            // All earthquakes
+            // All earthquakes (Use filtered list)
             Text(
-                text = "全部地震",
+                text = "全部地震 (近7天)",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = TextPrimary,
@@ -147,7 +154,7 @@ fun EarthquakeList(
                     .weight(1f)
                     .padding(horizontal = 16.dp)
             ) {
-                items(earthquakes) { earthquake ->
+                items(recentEarthquakes) { earthquake ->
                     EarthquakeItem(
                         earthquake = earthquake,
                         onClick = { onEarthquakeClick(earthquake) }

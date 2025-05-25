@@ -49,6 +49,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
+import androidx.compose.foundation.layout.PaddingValues
 
 /**
  * A list of earthquakes
@@ -79,12 +80,13 @@ fun EarthquakeList(
         modifier = modifier
             .fillMaxSize()
             .background(BackgroundPrimary)
+            .padding(bottom = 72.dp)
     ) {
         // Header
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -153,6 +155,8 @@ fun EarthquakeList(
                 modifier = Modifier
                     .weight(1f)
                     .padding(horizontal = 16.dp)
+                // If padding on root Column is not enough, add here:
+                // contentPadding = PaddingValues(bottom = 72.dp)
             ) {
                 items(recentEarthquakes) { earthquake ->
                     EarthquakeItem(

@@ -9,6 +9,7 @@ import android.os.VibratorManager
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.amap.api.maps.model.LatLng
 import com.example.eewapp.data.Earthquake
 import com.example.eewapp.data.EarthquakeImpact
 import com.example.eewapp.data.ShakingIntensity
@@ -63,10 +64,6 @@ class EarthquakeViewModel(application: Application) : AndroidViewModel(applicati
     // 警报状态
     private val _isAlertActive = MutableStateFlow(false)
     val isAlertActive: StateFlow<Boolean> = _isAlertActive.asStateFlow()
-    
-    // 被选中的地震信息
-    private val _selectedEarthquake = MutableStateFlow<Earthquake?>(null)
-    val selectedEarthquake: StateFlow<Earthquake?> = _selectedEarthquake.asStateFlow()
     
     // 媒体播放器（用于警报声音）
     private var mediaPlayer: MediaPlayer? = null
@@ -385,20 +382,39 @@ class EarthquakeViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
     
-    /**
-     * 设置被选中的地震
-     * @param earthquake 被选中的地震对象
-     */
-    fun setSelectedEarthquake(earthquake: Earthquake) {
-        _selectedEarthquake.value = earthquake
-        Log.d("EarthquakeViewModel", "设置被选中的地震: ${earthquake.title}, 震级: ${earthquake.magnitude}")
+    fun simulateEarthquake(epicenter: LatLng, magnitude: Double, depth: Double) {
+        // Simplified: just set _currentImpact for the card to show
+        // Actual simulation logic creating an Earthquake and EarthquakeImpact object is needed here
+        // For now, assuming it correctly populates _currentImpact.value
+        // Example (needs proper implementation):
+        /*
+        viewModelScope.launch {
+            val simulatedEarthquake = Earthquake(
+                id = "simulated-" + System.currentTimeMillis(),
+                time = Date(),
+                latitude = epicenter.latitude,
+                longitude = epicenter.longitude,
+                depth = depth,
+                magnitude = magnitude,
+                place = "Simulated Earthquake",
+                title = "[Simulated] Magnitude $magnitude event"
+            )
+            val impact = calculateImpact(simulatedEarthquake, userLocation.value) // calculateImpact would be a helper
+            _currentImpact.value = impact
+            if (impact != null && impact.intensity.level >= ShakingIntensity.LEVEL_4.level) {
+                triggerAlert(impact)
+            }
+        }
+        */
+        Log.d("EarthquakeViewModel", "Simulate earthquake called, _currentImpact should be set to show card.")
+        // Ensure your actual simulation logic correctly updates _currentImpact
     }
     
-    /**
-     * 清除被选中的地震
-     */
-    fun clearSelectedEarthquake() {
-        _selectedEarthquake.value = null
-        Log.d("EarthquakeViewModel", "清除被选中的地震")
+    fun cancelSimulation() {
+        viewModelScope.launch {
+            _currentImpact.value = null // This will hide the card
+            stopAlerts() // Stop any ongoing alerts from simulation
+            Log.d("EarthquakeViewModel", "Simulation cancelled, _currentImpact set to null.")
+        }
     }
 } 

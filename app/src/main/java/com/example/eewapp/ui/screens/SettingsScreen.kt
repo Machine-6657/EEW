@@ -33,6 +33,7 @@ import com.example.eewapp.data.Language
 import com.example.eewapp.data.MeasurementUnit
 import com.example.eewapp.viewmodel.SettingsViewModel
 import kotlinx.coroutines.flow.collectLatest
+import androidx.compose.foundation.layout.padding
 
 // 定义颜色常量
 private val RedEmphasis = Color(0xFF68C29F) // 绿色强调色，原为红色(0xFFD32F2F)
@@ -69,7 +70,7 @@ fun SettingsScreen(
                 .fillMaxWidth()
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 16.dp)
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 56.dp)
         ) {
             // 通知设置标题
             SectionTitle(text = "通知设置")
@@ -151,7 +152,7 @@ fun SettingsScreen(
                 onClick = { showResetDialog = true },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 24.dp),
+                    .padding(top = 24.dp, bottom = 24.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = RedEmphasis,
                     contentColor = Color.White

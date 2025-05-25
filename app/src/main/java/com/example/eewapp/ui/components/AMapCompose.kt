@@ -22,11 +22,17 @@ import androidx.lifecycle.LifecycleEventObserver
 import java.lang.reflect.Method
 
 /**
- * 高德地图的Compose包装器
+ * 高德地图的Compose包装器，支持3D地图
  */
 @Composable
 fun AMapCompose(
     modifier: Modifier = Modifier,
+    // 3D地图相关参数
+    is3DMode: Boolean = false,
+    pitch: Float = 0f, // 倾斜角度 (0-83)
+    rotation: Float = 0f, // 旋转角度 (0-360)
+    enableRotate: Boolean = true, // 是否允许旋转
+    enablePitch: Boolean = true, // 是否允许倾斜
     onMapLoaded: (Any) -> Unit = {},
     onMapClick: (Any) -> Unit = {},
     content: (@Composable (Any) -> Unit)? = null
@@ -36,7 +42,7 @@ fun AMapCompose(
     
     // 创建MapView和AMap
     val mapViewAndMap = remember {
-        createMapViewWithAMap(context)
+        createMapViewWithAMap(context, is3DMode, pitch, rotation, enableRotate, enablePitch)
     }
     
     // 处理生命周期事件
@@ -110,9 +116,16 @@ fun AMapCompose(
 }
 
 /**
- * 创建MapView和AMap对象
+ * 创建MapView和AMap对象，支持3D模式配置
  */
-private fun createMapViewWithAMap(context: Context): Pair<Any, Any> {
+private fun createMapViewWithAMap(
+    context: Context,
+    is3DMode: Boolean = false,
+    pitch: Float = 0f,
+    rotation: Float = 0f,
+    enableRotate: Boolean = true,
+    enablePitch: Boolean = true
+): Pair<Any, Any> {
     try {
         // 创建MapView
         val mapViewClass = Class.forName("com.amap.api.maps.MapView")
@@ -122,6 +135,31 @@ private fun createMapViewWithAMap(context: Context): Pair<Any, Any> {
         val getMapMethod = mapViewClass.getMethod("getMap")
         val aMap = getMapMethod.invoke(mapView)
         
+        // 配置3D地图
+        if (is3DMode) {
+            try {
+                // 设置3D模式 - 使用标准地图的3D视图
+                val setMapTypeMethod = aMap.javaClass.getMethod("setMapType", Int::class.java)
+                setMapTypeMethod.invoke(aMap, 1) // 1表示标准地图，支持3D视图
+                
+                // 设置倾斜角度
+                val setCameraTiltMethod = aMap.javaClass.getMethod("setCameraTilt", Float::class.java)
+                setCameraTiltMethod.invoke(aMap, pitch.coerceIn(0f, 83f))
+                
+                // 设置旋转角度
+                val setCameraBearingMethod = aMap.javaClass.getMethod("setCameraBearing", Float::class.java)
+                setCameraBearingMethod.invoke(aMap, rotation)
+                
+                Log.d("AMapCompose", "3D地图配置完成 - 倾斜角度: $pitch, 旋转角度: $rotation")
+            } catch (e: Exception) {
+                Log.e("AMapCompose", "配置3D地图失败", e)
+            }
+        }
+        
+        // 获取UI设置
+        val getUiSettingsMethod = aMap.javaClass.getMethod("getUiSettings")
+        val uiSettings = getUiSettingsMethod.invoke(aMap)
+        
         // 禁用高德地图默认的自动定位和视角移动功能
         try {
             // 禁用地图的自动定位模式
@@ -129,8 +167,6 @@ private fun createMapViewWithAMap(context: Context): Pair<Any, Any> {
             setMyLocationEnabledMethod.invoke(aMap, false)
             
             // 禁用指南针
-            val getUiSettingsMethod = aMap.javaClass.getMethod("getUiSettings")
-            val uiSettings = getUiSettingsMethod.invoke(aMap)
             val setCompassEnabledMethod = uiSettings.javaClass.getMethod("setCompassEnabled", Boolean::class.java)
             setCompassEnabledMethod.invoke(uiSettings, false)
             
@@ -138,11 +174,20 @@ private fun createMapViewWithAMap(context: Context): Pair<Any, Any> {
             val setZoomControlsEnabledMethod = uiSettings.javaClass.getMethod("setZoomControlsEnabled", Boolean::class.java)
             setZoomControlsEnabledMethod.invoke(uiSettings, false)
             
+            // 配置旋转和倾斜手势
+            val setRotateGesturesEnabledMethod = uiSettings.javaClass.getMethod("setRotateGesturesEnabled", Boolean::class.java)
+            setRotateGesturesEnabledMethod.invoke(uiSettings, enableRotate)
+            
+            val setTiltGesturesEnabledMethod = uiSettings.javaClass.getMethod("setTiltGesturesEnabled", Boolean::class.java)
+            setTiltGesturesEnabledMethod.invoke(uiSettings, enablePitch)
+            
             // 设置地图不跟随位置移动
             val setMyLocationType = aMap.javaClass.getMethod("setMyLocationType", Int::class.java)
             setMyLocationType.invoke(aMap, 0) // 0表示不跟随移动
+            
+            Log.d("AMapCompose", "地图UI配置完成 - 旋转手势: $enableRotate, 倾斜手势: $enablePitch")
         } catch (e: Exception) {
-            Log.e("AMapCompose", "禁用自动定位和视角移动功能失败", e)
+            Log.e("AMapCompose", "配置地图UI设置失败", e)
         }
         
         return Pair(mapView, aMap)
@@ -683,4 +728,113 @@ private fun createCircleBitmap(size: Int, color: Int): Bitmap {
     canvas.drawCircle(radius, radius, radius, paint)
     
     return bitmap
+}
+
+/**
+ * 切换地图的3D模式
+ */
+fun switchMapTo3D(aMap: Any, pitch: Float = 45f, rotation: Float = 0f) {
+    try {
+        // 设置标准地图类型的3D模式
+        val setMapTypeMethod = aMap.javaClass.getMethod("setMapType", Int::class.java)
+        setMapTypeMethod.invoke(aMap, 1) // 1表示标准地图，支持3D显示
+        
+        // 创建相机位置更新
+        val cameraUpdateFactoryClass = Class.forName("com.amap.api.maps.CameraUpdateFactory")
+        
+        // 获取当前相机位置
+        val getCameraPositionMethod = aMap.javaClass.getMethod("getCameraPosition")
+        val currentPosition = getCameraPositionMethod.invoke(aMap)
+        
+        // 获取当前位置信息
+        val cameraPositionClass = Class.forName("com.amap.api.maps.model.CameraPosition")
+        val targetField = cameraPositionClass.getField("target")
+        val zoomField = cameraPositionClass.getField("zoom")
+        val currentTarget = targetField.get(currentPosition)
+        val currentZoom = zoomField.get(currentPosition) as Float
+        
+        // 创建新的相机位置构建器
+        val builderClass = Class.forName("com.amap.api.maps.model.CameraPosition\$Builder")
+        val builder = builderClass.newInstance()
+        
+        // 设置目标位置、缩放级别、倾斜角度和旋转角度
+        val targetMethod = builderClass.getMethod("target", currentTarget.javaClass)
+        val zoomMethod = builderClass.getMethod("zoom", Float::class.java)
+        val tiltMethod = builderClass.getMethod("tilt", Float::class.java)
+        val bearingMethod = builderClass.getMethod("bearing", Float::class.java)
+        
+        targetMethod.invoke(builder, currentTarget)
+        zoomMethod.invoke(builder, currentZoom)
+        tiltMethod.invoke(builder, pitch.coerceIn(0f, 83f))
+        bearingMethod.invoke(builder, rotation)
+        
+        // 构建相机位置
+        val buildMethod = builderClass.getMethod("build")
+        val newCameraPosition = buildMethod.invoke(builder)
+        
+        // 创建相机更新
+        val newCameraPositionMethod = cameraUpdateFactoryClass.getMethod("newCameraPosition", cameraPositionClass)
+        val cameraUpdate = newCameraPositionMethod.invoke(null, newCameraPosition)
+        
+        // 动画移动相机
+        val animateCameraMethod = aMap.javaClass.getMethod("animateCamera", Class.forName("com.amap.api.maps.CameraUpdate"))
+        animateCameraMethod.invoke(aMap, cameraUpdate)
+        
+        Log.d("AMapCompose", "成功切换到3D模式 - 倾斜角度: $pitch, 旋转角度: $rotation")
+    } catch (e: Exception) {
+        Log.e("AMapCompose", "切换3D模式失败", e)
+    }
+}
+
+/**
+ * 切换地图回2D模式
+ */
+fun switchMapTo2D(aMap: Any) {
+    try {
+        // 设置普通地图类型
+        val setMapTypeMethod = aMap.javaClass.getMethod("setMapType", Int::class.java)
+        setMapTypeMethod.invoke(aMap, 1) // 1表示普通地图
+        
+        // 获取当前相机位置
+        val getCameraPositionMethod = aMap.javaClass.getMethod("getCameraPosition")
+        val currentPosition = getCameraPositionMethod.invoke(aMap)
+        
+        // 获取当前位置信息
+        val cameraPositionClass = Class.forName("com.amap.api.maps.model.CameraPosition")
+        val targetField = cameraPositionClass.getField("target")
+        val zoomField = cameraPositionClass.getField("zoom")
+        val currentTarget = targetField.get(currentPosition)
+        val currentZoom = zoomField.get(currentPosition) as Float
+        
+        // 创建新的相机位置（重置倾斜和旋转）
+        val builderClass = Class.forName("com.amap.api.maps.model.CameraPosition\$Builder")
+        val builder = builderClass.newInstance()
+        
+        val targetMethod = builderClass.getMethod("target", currentTarget.javaClass)
+        val zoomMethod = builderClass.getMethod("zoom", Float::class.java)
+        val tiltMethod = builderClass.getMethod("tilt", Float::class.java)
+        val bearingMethod = builderClass.getMethod("bearing", Float::class.java)
+        
+        targetMethod.invoke(builder, currentTarget)
+        zoomMethod.invoke(builder, currentZoom)
+        tiltMethod.invoke(builder, 0f) // 重置倾斜角度
+        bearingMethod.invoke(builder, 0f) // 重置旋转角度
+        
+        // 构建相机位置
+        val buildMethod = builderClass.getMethod("build")
+        val newCameraPosition = buildMethod.invoke(builder)
+        
+        // 创建相机更新
+        val cameraUpdateFactoryClass = Class.forName("com.amap.api.maps.CameraUpdateFactory")
+        val newCameraPositionMethod = cameraUpdateFactoryClass.getMethod("newCameraPosition", cameraPositionClass)
+        val cameraUpdate = newCameraPositionMethod.invoke(null, newCameraPosition)
+        
+        // 动画移动相机
+        val animateCameraMethod = aMap.javaClass.getMethod("animateCamera", Class.forName("com.amap.api.maps.CameraUpdate"))
+        animateCameraMethod.invoke(aMap, cameraUpdate)
+        
+        Log.d("AMapCompose", "成功切换到2D模式")
+    } catch (e: Exception) {
+        Log.e("AMapCompose", "切换2D模式失败", e)
+    }
 } 

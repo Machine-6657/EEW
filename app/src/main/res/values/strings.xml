@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">EEWapp</string>
+    <!-- 高德地图API密钥 - Android平台 (用于地图SDK) -->
+    <string name="amap_key">8fb10030cb8075e86a863ff7bb66b7c8</string>
+    <!-- 高德地图Web API密钥 - EEW-地震预警 (用于路径规划API) -->
+    <string name="amap_web_api_key">16efc0a1537f18feac7c4d6a5f45d5a7</string>
+    <!-- 高德地图安全密钥 (暂时留空，因为EEW-地震预警显示为"—") -->
+    <string name="amap_security_js_code"></string>
 </resources>

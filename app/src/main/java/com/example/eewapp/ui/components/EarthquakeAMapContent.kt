@@ -16,21 +16,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
-// 高德地图相关类引用
-import com.amap.api.maps.AMap
-import com.amap.api.maps.CameraUpdateFactory
-import com.amap.api.maps.model.LatLng
-import com.amap.api.maps.model.LatLngBounds
-import com.amap.api.maps.model.Polyline
-import com.amap.api.maps.model.PolylineOptions
-import com.amap.api.maps.model.Circle
-import com.amap.api.maps.model.CircleOptions
 import com.example.eewapp.data.Earthquake
 import com.example.eewapp.data.EarthquakeImpact
 import com.example.eewapp.data.UserLocation
 import com.example.eewapp.ui.utils.ColorUtils
 import kotlinx.coroutines.delay
 import com.example.eewapp.data.ShakingIntensity
+import com.example.eewapp.ui.components.createLatLng
 // 使用Java反射机制处理可能的引用问题
 // import java.lang.reflect.Method
 
@@ -44,6 +36,9 @@ fun EarthquakeAMapContent(
     userLocation: UserLocation?,
     impact: EarthquakeImpact?,
     zoomLevel: Float = 10f,
+    // 新增参数用于管理用户到震中的虚线
+    userToEpicenterPolyline: Any?,
+    onUserToEpicenterPolylineUpdated: (Any?) -> Unit,
     modifier: Modifier = Modifier
 ) {
     // 创建地震震中位置的LatLng对象
@@ -68,46 +63,65 @@ fun EarthquakeAMapContent(
         outerRingAlpha = 100  // 外圈透明度
     )
     
+    // 管理连接用户和震中的直线
+    LaunchedEffect(aMap, userLocation, impact, epicenter) {
+        val existingPolyline = userToEpicenterPolyline // 从参数捕获，这是 EarthquakeAMap 中保存的状态
+
+        if (userLocation != null && impact != null) {
+            // 条件满足，需要绘制虚线
+            Log.d("AMapContent", "条件满足，准备绘制/更新 user-epicenter 虚线")
+            // 先尝试移除已存在的虚线 (如果它确实是当前地图上的那条，或者我们需要更新它)
+            existingPolyline?.let {
+                try {
+                    // 确认这个 existingPolyline 是否还在地图上，或者只是一个旧的引用
+                    // 通常，如果状态正确，这里移除的是上一条有效的线
+                    it.javaClass.getMethod("remove").invoke(it)
+                    Log.d("AMapContent", "旧的 user-epicenter 虚线已从地图移除 (准备重绘)")
+                } catch (e: Exception) {
+                    Log.e("AMapContent", "移除旧的 user-epicenter 虚线失败", e)
+                }
+            }
+
+            val userLatLng = createLatLng(userLocation.latitude, userLocation.longitude)
+            val newPolyline = addPolylineToMapReflection(
+                aMap = aMap,
+                points = listOf(userLatLng, epicenter),
+                color = android.graphics.Color.rgb(255, 165, 0), // 橙色
+                width = 12f,
+                isDashed = true
+            )
+            if (newPolyline != null) {
+                Log.d("AMapContent", "新的 user-epicenter 虚线已创建: $newPolyline")
+            } else {
+                Log.w("AMapContent", "创建新的 user-epicenter 虚线失败 (返回null)")
+            }
+            onUserToEpicenterPolylineUpdated(newPolyline) // 更新外部状态
+        } else {
+            // 条件不满足，不应显示虚线
+            Log.d("AMapContent", "条件不满足 (userLocation或impact为null)，准备移除 user-epicenter 虚线")
+            existingPolyline?.let {
+                try {
+                    it.javaClass.getMethod("remove").invoke(it)
+                    Log.d("AMapContent", "user-epicenter 虚线已从地图移除 (条件不满足)")
+                } catch (e: Exception) {
+                    Log.e("AMapContent", "移除 user-epicenter 虚线失败 (条件不满足)", e)
+                }
+            }
+            // 确保如果之前有线，现在状态也清空
+            if (existingPolyline != null) {
+                onUserToEpicenterPolylineUpdated(null) // 清除外部状态
+            }
+        }
+    }
+    
     // 如果有用户位置和影响数据，计算用户与震中的边界框，但不自动移动
     if (userLocation != null && impact != null) {
-        val userLatLng = createLatLng(userLocation.latitude, userLocation.longitude)
-        
-        // 使用固定屏幕大小的蓝色标记点表示用户位置
-        AMapScreenMarker(
-            aMap = aMap,
-            position = userLatLng,
-            color = android.graphics.Color.rgb(30, 144, 255), // 亮蓝色 #1E90FF - 只有用户位置使用蓝色
-            size = 12f,  // 内圆大小
-            outerRingSize = 20f,  // 外圈大小
-            outerRingAlpha = 80   // 外圈透明度
-        )
-        
-        // 用户位置周围的半透明圆，表示用户所在区域
-        AMapCircle(
-            aMap = aMap,
-            center = userLatLng,
-            radius = 30000.0, // 30公里范围
-            strokeWidth = 1f,
-            strokeColor = android.graphics.Color.rgb(30, 144, 255), // 亮蓝色 #1E90FF - 用户圈使用蓝色
-            fillColor = android.graphics.Color.argb(20, 30, 144, 255) // 低透明度的亮蓝色 - 用户圈使用蓝色
-        )
-        
-        // 连接用户和震中的直线 - 使用直接调用
-        AMapPolyline(
-            aMap = aMap as? AMap,
-            points = listOf(userLatLng, epicenter),
-            color = android.graphics.Color.rgb(255, 165, 0),
-            width = 12f,
-            isDashed = true
-        )
-        
-        // 计算边界，但不自动移动相机
         val boundsSuccess = remember { mutableStateOf(false) }
         var bounds: Any? = null
         
         try {
             val boundsBuilder = createLatLngBoundsBuilder()
-            includeInBounds(boundsBuilder, userLatLng)
+            includeInBounds(boundsBuilder, createLatLng(userLocation.latitude, userLocation.longitude))
             includeInBounds(boundsBuilder, epicenter)
             bounds = buildBounds(boundsBuilder)
             boundsSuccess.value = true
@@ -138,51 +152,51 @@ fun EarthquakeAMapContent(
 }
 
 /**
- * 地图上的线条 - Refactored to use direct SDK calls
+ * 使用反射添加折线到地图
  */
-@Composable
-fun AMapPolyline(
-    aMap: AMap?,
-    points: List<LatLng>,
+private fun addPolylineToMapReflection(
+    aMap: Any,
+    points: List<Any>,
     color: Int,
     width: Float,
     isDashed: Boolean = false
-) {
-    if (aMap == null) {
-        Log.w("AMapPolyline", "AMap instance is null, cannot add polyline.")
-        return
-    }
-
-    DisposableEffect(points, color, width, isDashed) {
-        val options = PolylineOptions()
-
+): Any? {
+    try {
+        // 创建折线选项
+        val polylineOptionsClass = Class.forName("com.amap.api.maps.model.PolylineOptions")
+        val polylineOptions = polylineOptionsClass.newInstance()
+        
+        // 添加路径点
+        val addMethod = polylineOptionsClass.getMethod("add", Class.forName("com.amap.api.maps.model.LatLng"))
         points.forEach { point ->
-            options.add(point)
+            addMethod.invoke(polylineOptions, point)
         }
 
-        options.color(color)
-        options.width(width)
+        // 设置颜色
+        val colorMethod = polylineOptionsClass.getMethod("color", Int::class.java)
+        colorMethod.invoke(polylineOptions, color)
+        
+        // 设置线宽
+        val widthMethod = polylineOptionsClass.getMethod("width", Float::class.java)
+        widthMethod.invoke(polylineOptions, width)
+        
+        // 设置是否虚线
         if (isDashed) {
-            options.setDottedLine(true)
-            Log.d("AMapPolyline", "Dotted line enabled using setDottedLine.")
-        }
-
-        var polyline: Polyline? = null
-        try {
-             polyline = aMap.addPolyline(options)
-             Log.d("AMapPolyline", "Polyline added successfully.")
-        } catch (e: Exception) {
-            Log.e("AMapPolyline", "添加折线失败", e)
-        }
-
-        onDispose {
             try {
-                polyline?.remove()
-                Log.d("AMapPolyline", "Polyline removed.")
+                val setDottedLineMethod = polylineOptionsClass.getMethod("setDottedLine", Boolean::class.java)
+                setDottedLineMethod.invoke(polylineOptions, true)
             } catch (e: Exception) {
-                Log.e("AMapPolyline", "移除折线失败", e)
+                Log.w("EarthquakeAMapContent", "设置虚线模式失败", e)
             }
         }
+        
+        // 添加折线到地图
+        val addPolylineMethod = aMap.javaClass.getMethod("addPolyline", polylineOptionsClass)
+        return addPolylineMethod.invoke(aMap, polylineOptions)
+        
+    } catch (e: Exception) {
+        Log.e("EarthquakeAMapContent", "添加折线失败", e)
+        return null
     }
 }
 
@@ -354,13 +368,6 @@ fun EarthquakeWaveAnimationOnMap(
 }
 
 /**
- * 创建LatLng对象 - Refactored to use direct SDK calls
- */
-private fun createLatLng(latitude: Double, longitude: Double): LatLng {
-    return LatLng(latitude, longitude)
-}
-
-/**
  * 创建LatLngBounds.Builder对象
  */
 private fun createLatLngBoundsBuilder(): Any {
@@ -398,20 +405,6 @@ private fun buildBounds(builder: Any): Any {
         Log.e("EarthquakeAMapContent", "构建LatLngBounds失败", e)
         throw e
     }
-}
-
-/**
- * 移动相机到指定位置 - Refactored to use direct SDK calls
- */
-private fun animateCamera(aMap: AMap?, latLng: LatLng, zoom: Float) {
-    aMap?.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, zoom))
-}
-
-/**
- * 移动相机到指定边界 - Refactored to use direct SDK calls
- */
-private fun animateCameraWithBounds(aMap: AMap?, bounds: LatLngBounds, padding: Int) {
-    aMap?.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, padding))
 }
 
 /**

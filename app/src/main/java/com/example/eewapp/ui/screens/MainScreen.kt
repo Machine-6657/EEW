@@ -39,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -49,6 +50,7 @@ import com.example.eewapp.ui.components.AlertBanner
 import com.example.eewapp.ui.components.EarthquakeList
 import com.example.eewapp.ui.components.EarthquakeAMap
 import com.example.eewapp.viewmodel.EarthquakeViewModel
+import com.example.eewapp.viewmodel.EscapeNavigationViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import androidx.compose.foundation.layout.WindowInsets
@@ -59,6 +61,11 @@ import androidx.compose.foundation.layout.WindowInsets
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun MainScreen(viewModel: EarthquakeViewModel = androidx.lifecycle.viewmodel.compose.viewModel()) {
+    val context = LocalContext.current
+    
+    // 逃生导航ViewModel
+    val escapeNavigationViewModel = remember { EscapeNavigationViewModel(context) }
+    
     // 状态
     val userLocation by viewModel.userLocation.collectAsStateWithLifecycle()
     val earthquakes by viewModel.recentEarthquakes.collectAsStateWithLifecycle()
@@ -67,7 +74,10 @@ fun MainScreen(viewModel: EarthquakeViewModel = androidx.lifecycle.viewmodel.com
     val isAlertActive by viewModel.isAlertActive.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
-    val selectedEarthquake by viewModel.selectedEarthquake.collectAsStateWithLifecycle()
+    
+    // 逃生导航状态
+    val escapeNavigationState by escapeNavigationViewModel.navigationState.collectAsStateWithLifecycle()
+    val escapeNavigationError by escapeNavigationViewModel.errorMessage.collectAsStateWithLifecycle()
     
     // UI状态
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -88,10 +98,11 @@ fun MainScreen(viewModel: EarthquakeViewModel = androidx.lifecycle.viewmodel.com
         }
     }
     
-    // 当选中地震时，自动切换到地图标签
-    LaunchedEffect(selectedEarthquake) {
-        if (selectedEarthquake != null) {
-            selectedTab = 0 // 切换到地图标签
+    // 显示逃生导航错误消息
+    LaunchedEffect(escapeNavigationError) {
+        escapeNavigationError?.let {
+            snackbarHostState.showSnackbar("逃生导航：$it")
+            escapeNavigationViewModel.clearError()
         }
     }
     
@@ -107,15 +118,27 @@ fun MainScreen(viewModel: EarthquakeViewModel = androidx.lifecycle.viewmodel.com
                 earthquakes = earthquakes,
                 significantEarthquakes = significantEarthquakes,
                 currentImpact = currentImpact,
-                selectedEarthquake = selectedEarthquake
+                escapeNavigationState = escapeNavigationState,
+                onEscapeNavigationStart = { userLoc ->
+                    escapeNavigationViewModel.startEscapeNavigation(userLoc)
+                },
+                onSafetyLocationSelected = { location ->
+                    escapeNavigationViewModel.selectSafetyLocation(location)
+                },
+                onNavigationStart = { userLoc, destination ->
+                    escapeNavigationViewModel.startNavigation(userLoc, destination)
+                },
+                onNavigationStop = {
+                    escapeNavigationViewModel.stopNavigation()
+                },
+                onEscapeNavigationDismiss = {
+                    escapeNavigationViewModel.dismissEscapeNavigation()
+                }
             )
             1 -> ListTab(
                 earthquakes = earthquakes,
                 significantEarthquakes = significantEarthquakes,
-                onEarthquakeClick = { earthquake ->
-                    // 设置选中的地震并切换到地图标签
-                    viewModel.setSelectedEarthquake(earthquake)
-                },
+                onEarthquakeClick = { /* NO-OP */ },
                 onRefresh = { viewModel.refreshEarthquakes() },
                 isLoading = isLoading
             )
@@ -136,7 +159,6 @@ fun MainScreen(viewModel: EarthquakeViewModel = androidx.lifecycle.viewmodel.com
             selectedTab = selectedTab,
             onTabSelected = { newTab -> 
                 selectedTab = newTab
-                // 不需要在这里清除选中的地震，保持选择状态
             },
             modifier = Modifier.align(Alignment.BottomCenter)
         )
@@ -247,81 +269,31 @@ fun MapTab(
     earthquakes: List<Earthquake>,
     significantEarthquakes: List<com.example.eewapp.data.EarthquakeImpact>,
     currentImpact: com.example.eewapp.data.EarthquakeImpact?,
-    selectedEarthquake: Earthquake?
+    escapeNavigationState: com.example.eewapp.data.EscapeNavigationState,
+    onEscapeNavigationStart: (com.example.eewapp.data.UserLocation) -> Unit,
+    onSafetyLocationSelected: (com.example.eewapp.data.SafetyLocation) -> Unit,
+    onNavigationStart: (com.example.eewapp.data.UserLocation, com.example.eewapp.data.SafetyLocation) -> Unit,
+    onNavigationStop: () -> Unit,
+    onEscapeNavigationDismiss: () -> Unit
 ) {
-    // 添加调试日志
     Log.d("MapTab", "Rendering MapTab")
     Log.d("MapTab", "UserLocation: $userLocation")
     Log.d("MapTab", "Earthquakes count: ${earthquakes.size}")
-    Log.d("MapTab", "Selected earthquake: ${selectedEarthquake?.title}")
     
     Box(modifier = Modifier.fillMaxSize()) {
-        // 使用高德地图组件
         EarthquakeAMap(
             userLocation = userLocation,
             earthquakes = earthquakes,
             significantEarthquakes = significantEarthquakes,
             currentImpact = currentImpact,
-            selectedEarthquake = selectedEarthquake,
+            escapeNavigationState = escapeNavigationState,
+            onEscapeNavigationStart = onEscapeNavigationStart,
+            onSafetyLocationSelected = onSafetyLocationSelected,
+            onNavigationStart = onNavigationStart,
+            onNavigationStop = onNavigationStop,
+            onEscapeNavigationDismiss = onEscapeNavigationDismiss,
             modifier = Modifier.fillMaxSize()
         )
-        
-        // 如果有选中的地震，显示一个提示
-        if (selectedEarthquake != null) {
-            androidx.compose.material3.Card(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .align(Alignment.TopStart),
-                colors = androidx.compose.material3.CardDefaults.cardColors(
-                    containerColor = Color.White.copy(alpha = 0.9f)
-                ),
-                elevation = androidx.compose.material3.CardDefaults.cardElevation(
-                    defaultElevation = 4.dp
-                )
-            ) {
-                Row(
-                    modifier = Modifier.padding(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // 震级圆形指示器
-                    Box(
-                        modifier = Modifier
-                            .size(24.dp)
-                            .background(
-                                color = when {
-                                    selectedEarthquake.magnitude >= 7.0 -> Color(0xFF800000) // 暗红色
-                                    selectedEarthquake.magnitude >= 6.0 -> Color(0xFFFF0000) // 红色
-                                    selectedEarthquake.magnitude >= 5.0 -> Color(0xFFFF4500) // 橙红色
-                                    selectedEarthquake.magnitude >= 4.0 -> Color(0xFFFFA500) // 橙色
-                                    selectedEarthquake.magnitude >= 3.0 -> Color(0xFFFFFF00) // 黄色
-                                    else -> Color(0xFF008000) // 绿色
-                                },
-                                shape = CircleShape
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = String.format("%.1f", selectedEarthquake.magnitude),
-                            color = Color.White,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    
-                    // 间隔
-                    Spacer(modifier = Modifier.width(8.dp))
-                    
-                    // 地震位置文本
-                    Text(
-                        text = selectedEarthquake.location.place,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-        }
     }
 }
 
@@ -361,7 +333,7 @@ fun SafetyTab() {
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundPrimary)
-            .padding(16.dp)
+            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 72.dp)
     ) {
         Text(
             text = "地震安全指南",

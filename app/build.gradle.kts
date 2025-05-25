@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    kotlin("plugin.serialization") version "1.9.21"
 }
 
 android {
@@ -94,6 +95,9 @@ dependencies {
     
     // 添加高德地图的本地JAR文件
     implementation(files("libs/AMap3DMap_10.1.200_AMapSearch_9.7.4_AMapLocation_6.4.9_20241226.jar"))
+    
+    // JSON序列化
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
     
     // Networking
     implementation("com.squareup.retrofit2:retrofit:2.9.0")

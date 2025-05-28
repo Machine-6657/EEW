@@ -68,12 +68,12 @@ fun MapControlButtons(
             modifier = Modifier.padding(end = 16.dp) // 增加按钮之间的间距
         )
         
-        // 最近地震按钮（绿色）
+        // 最近地震按钮（蓝色）
         MapControlButton(
             onClick = onNearestEarthquake,
             icon = Icons.Filled.LocationOn,
             contentDescription = "定位到最近地震",
-            buttonColor = Color(0xFF68C29F) // 绿色强调色
+            buttonColor = Color(0xFF1E90FF) // 蓝色强调色
         )
     }
 }
@@ -90,7 +90,7 @@ fun MapControlButton(
     modifier: Modifier = Modifier
 ) {
     // 定义颜色常量
-    val RedEmphasis = Color(0xFF68C29F) // 绿色强调色，原为红色(0xFFD32F2F)
+    val BlueEmphasis = Color(0xFF1E90FF) // 蓝色强调色
     val BackgroundPrimary = Color.White // 主要背景色
 
     // 使用白色背景，彩色图标
@@ -112,7 +112,7 @@ fun MapControlButton(
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = if (buttonColor == Color.Red) RedEmphasis else buttonColor,
+            tint = if (buttonColor == Color.Red) BlueEmphasis else buttonColor,
             modifier = Modifier.size(24.dp)
         )
     }

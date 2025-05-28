@@ -36,10 +36,10 @@ import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.foundation.layout.padding
 
 // 定义颜色常量
-private val RedEmphasis = Color(0xFF68C29F) // 绿色强调色，原为红色(0xFFD32F2F)
+private val BlueEmphasis = Color(0xFF1E90FF) // 蓝色强调色
 private val TextPrimary = Color.Black // 主要文本颜色
 private val TextSecondary = Color.DarkGray // 次要文本颜色
-private val BackgroundPrimary = Color.White // 主要背景色
+private val BackgroundPrimary = Color(0xFFF0F2F5) // 更明显的浅灰色背景
 private val DividerColor = Color.LightGray.copy(alpha = 0.5f) // 分隔线颜色
 
 @Composable
@@ -78,7 +78,7 @@ fun SettingsScreen(
             // 地震预警通知设置
             NotificationSettingItem(
                 icon = Icons.Filled.Notifications,
-                iconTint = RedEmphasis,
+                iconTint = BlueEmphasis,
                 title = "启用地震预警",
                 description = "接收地震预警通知",
                 checked = settings.notificationSettings.earthquakeWarningEnabled,
@@ -88,7 +88,7 @@ fun SettingsScreen(
             // 声音提醒设置
             NotificationSettingItem(
                 icon = Icons.Outlined.VolumeUp,
-                iconTint = TextPrimary,
+                iconTint = BlueEmphasis,
                 title = "声音提醒",
                 description = "播放警报声音",
                 checked = settings.notificationSettings.soundAlertEnabled,
@@ -98,7 +98,7 @@ fun SettingsScreen(
             // 震动提醒设置
             NotificationSettingItem(
                 icon = Icons.Outlined.Vibration,
-                iconTint = TextPrimary,
+                iconTint = BlueEmphasis,
                 title = "震动提醒",
                 description = "启用设备震动",
                 checked = settings.notificationSettings.vibrationEnabled,
@@ -111,7 +111,7 @@ fun SettingsScreen(
             // 最小震级设置
             SettingItem(
                 icon = Icons.Filled.Warning,
-                iconTint = RedEmphasis,
+                iconTint = BlueEmphasis,
                 title = "最小震级",
                 value = "${settings.filterSettings.minMagnitude} 级以上地震将触发警报",
                 onClick = { showMagnitudeDialog = true }
@@ -120,7 +120,7 @@ fun SettingsScreen(
             // 监测半径设置
             SettingItem(
                 icon = Icons.Outlined.LocationOn,
-                iconTint = TextPrimary,
+                iconTint = BlueEmphasis,
                 title = "监测半径",
                 value = "${settings.filterSettings.monitoringRadiusKm} 公里范围内的地震将被监测",
                 onClick = { showRadiusDialog = true }
@@ -132,7 +132,7 @@ fun SettingsScreen(
             // 语言设置
             SettingItem(
                 icon = Icons.Filled.Language,
-                iconTint = TextPrimary,
+                iconTint = BlueEmphasis,
                 title = "语言",
                 value = settings.appPreferences.language.displayName,
                 onClick = { showLanguageDialog = true }
@@ -141,7 +141,7 @@ fun SettingsScreen(
             // 单位设置
             SettingItem(
                 icon = Icons.Outlined.Settings,
-                iconTint = TextPrimary,
+                iconTint = BlueEmphasis,
                 title = "单位",
                 value = settings.appPreferences.unit.displayName,
                 onClick = { showUnitDialog = true }
@@ -154,7 +154,7 @@ fun SettingsScreen(
                     .fillMaxWidth()
                     .padding(top = 24.dp, bottom = 24.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = RedEmphasis,
+                    containerColor = BlueEmphasis,
                     contentColor = Color.White
                 ),
                 shape = RoundedCornerShape(8.dp)
@@ -228,7 +228,7 @@ fun SettingsScreen(
                         viewModel.resetAllSettings()
                         showResetDialog = false
                     },
-                    colors = ButtonDefaults.textButtonColors(contentColor = RedEmphasis)
+                    colors = ButtonDefaults.textButtonColors(contentColor = BlueEmphasis)
                 ) {
                     Text("确定")
                 }
@@ -241,7 +241,7 @@ fun SettingsScreen(
                     Text("取消")
                 }
             },
-            containerColor = BackgroundPrimary
+            containerColor = Color.White
         )
     }
 }
@@ -264,66 +264,72 @@ fun SettingItem(
     value: String,
     onClick: () -> Unit
 ) {
-    Row(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(
-                when {
-                    title == "最小震级" -> RedEmphasis.copy(alpha = 0.1f)
-                    else -> Color.Transparent
-                }
-            )
-            .clickable(onClick = onClick)
-            .padding(vertical = 12.dp, horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // 图标
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(iconTint.copy(alpha = 0.1f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = iconTint,
-                modifier = Modifier.size(24.dp)
-            )
-        }
-        
-        // 文本内容
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = 16.dp)
-        ) {
-            Text(
-                text = title,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                color = TextPrimary
-            )
-            
-            Text(
-                text = value,
-                fontSize = 14.sp,
-                color = TextSecondary,
-                modifier = Modifier.padding(top = 4.dp)
-            )
-        }
-        
-        // 右箭头
-        Icon(
-            imageVector = Icons.Filled.KeyboardArrowRight,
-            contentDescription = null,
-            tint = TextSecondary
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp,
+            pressedElevation = 4.dp
         )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp, horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 图标
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(iconTint.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            
+            // 文本内容
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 16.dp)
+            ) {
+                Text(
+                    text = title,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = TextPrimary
+                )
+                
+                Text(
+                    text = value,
+                    fontSize = 14.sp,
+                    color = TextSecondary,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+            
+            // 右箭头
+            Icon(
+                imageVector = Icons.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = TextSecondary
+            )
+        }
     }
     
-    Spacer(modifier = Modifier.height(8.dp))
+    Spacer(modifier = Modifier.height(12.dp))
 }
 
 @Composable
@@ -335,70 +341,74 @@ fun NotificationSettingItem(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(
-                when {
-                    title == "启用地震预警" -> RedEmphasis.copy(alpha = 0.1f)
-                    else -> Color.Transparent
-                }
-            )
-            .padding(vertical = 12.dp, horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // 图标
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(iconTint.copy(alpha = 0.1f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = iconTint,
-                modifier = Modifier.size(24.dp)
-            )
-        }
-        
-        // 文本内容
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = 16.dp)
-        ) {
-            Text(
-                text = title,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                color = TextPrimary
-            )
-            
-            Text(
-                text = description,
-                fontSize = 14.sp,
-                color = TextSecondary,
-                modifier = Modifier.padding(top = 4.dp)
-            )
-        }
-        
-        // 开关
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
-                checkedTrackColor = RedEmphasis,
-                uncheckedThumbColor = Color.White,
-                uncheckedTrackColor = TextSecondary.copy(alpha = 0.5f)
-            )
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp
         )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp, horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 图标
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(iconTint.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            
+            // 文本内容
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 16.dp)
+            ) {
+                Text(
+                    text = title,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = TextPrimary
+                )
+                
+                Text(
+                    text = description,
+                    fontSize = 14.sp,
+                    color = TextSecondary,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+            
+            // 开关
+            Switch(
+                checked = checked,
+                onCheckedChange = onCheckedChange,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color.White,
+                    checkedTrackColor = BlueEmphasis,
+                    uncheckedThumbColor = Color.White,
+                    uncheckedTrackColor = TextSecondary.copy(alpha = 0.5f)
+                )
+            )
+        }
     }
     
-    Spacer(modifier = Modifier.height(8.dp))
+    Spacer(modifier = Modifier.height(12.dp))
 }
 
 @Composable
@@ -416,7 +426,7 @@ fun MagnitudeDialog(
                 .fillMaxWidth()
                 .padding(16.dp),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = BackgroundPrimary)
+            colors = CardDefaults.cardColors(containerColor = Color.White)
         ) {
             Column(
                 modifier = Modifier.padding(16.dp)
@@ -444,7 +454,7 @@ fun MagnitudeDialog(
                                 selected = selectedMagnitude == magnitude,
                                 onClick = { selectedMagnitude = magnitude },
                                 colors = RadioButtonDefaults.colors(
-                                    selectedColor = RedEmphasis,
+                                    selectedColor = BlueEmphasis,
                                     unselectedColor = TextSecondary
                                 )
                             )
@@ -452,7 +462,7 @@ fun MagnitudeDialog(
                             Text(
                                 text = "$magnitude 级",
                                 modifier = Modifier.padding(start = 8.dp),
-                                color = if (magnitude >= 5.0f) RedEmphasis else TextPrimary
+                                color = if (magnitude >= 5.0f) BlueEmphasis else TextPrimary
                             )
                         }
                     }
@@ -474,7 +484,7 @@ fun MagnitudeDialog(
                     
                     TextButton(
                         onClick = { onConfirm(selectedMagnitude) },
-                        colors = ButtonDefaults.textButtonColors(contentColor = RedEmphasis)
+                        colors = ButtonDefaults.textButtonColors(contentColor = BlueEmphasis)
                     ) {
                         Text("确定")
                     }
@@ -499,7 +509,7 @@ fun RadiusDialog(
                 .fillMaxWidth()
                 .padding(16.dp),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = BackgroundPrimary)
+            colors = CardDefaults.cardColors(containerColor = Color.White)
         ) {
             Column(
                 modifier = Modifier.padding(16.dp)
@@ -527,7 +537,7 @@ fun RadiusDialog(
                                 selected = selectedRadius == radius,
                                 onClick = { selectedRadius = radius },
                                 colors = RadioButtonDefaults.colors(
-                                    selectedColor = RedEmphasis,
+                                    selectedColor = BlueEmphasis,
                                     unselectedColor = TextSecondary
                                 )
                             )
@@ -557,7 +567,7 @@ fun RadiusDialog(
                     
                     TextButton(
                         onClick = { onConfirm(selectedRadius) },
-                        colors = ButtonDefaults.textButtonColors(contentColor = RedEmphasis)
+                        colors = ButtonDefaults.textButtonColors(contentColor = BlueEmphasis)
                     ) {
                         Text("确定")
                     }
@@ -581,7 +591,7 @@ fun LanguageDialog(
                 .fillMaxWidth()
                 .padding(16.dp),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = BackgroundPrimary)
+            colors = CardDefaults.cardColors(containerColor = Color.White)
         ) {
             Column(
                 modifier = Modifier.padding(16.dp)
@@ -609,7 +619,7 @@ fun LanguageDialog(
                                 selected = selectedLanguage == language,
                                 onClick = { selectedLanguage = language },
                                 colors = RadioButtonDefaults.colors(
-                                    selectedColor = RedEmphasis,
+                                    selectedColor = BlueEmphasis,
                                     unselectedColor = TextSecondary
                                 )
                             )
@@ -639,7 +649,7 @@ fun LanguageDialog(
                     
                     TextButton(
                         onClick = { onSelect(selectedLanguage) },
-                        colors = ButtonDefaults.textButtonColors(contentColor = RedEmphasis)
+                        colors = ButtonDefaults.textButtonColors(contentColor = BlueEmphasis)
                     ) {
                         Text("确定")
                     }
@@ -663,7 +673,7 @@ fun UnitDialog(
                 .fillMaxWidth()
                 .padding(16.dp),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = BackgroundPrimary)
+            colors = CardDefaults.cardColors(containerColor = Color.White)
         ) {
             Column(
                 modifier = Modifier.padding(16.dp)
@@ -691,7 +701,7 @@ fun UnitDialog(
                                 selected = selectedUnit == unit,
                                 onClick = { selectedUnit = unit },
                                 colors = RadioButtonDefaults.colors(
-                                    selectedColor = RedEmphasis,
+                                    selectedColor = BlueEmphasis,
                                     unselectedColor = TextSecondary
                                 )
                             )
@@ -721,7 +731,7 @@ fun UnitDialog(
                     
                     TextButton(
                         onClick = { onSelect(selectedUnit) },
-                        colors = ButtonDefaults.textButtonColors(contentColor = RedEmphasis)
+                        colors = ButtonDefaults.textButtonColors(contentColor = BlueEmphasis)
                     ) {
                         Text("确定")
                     }

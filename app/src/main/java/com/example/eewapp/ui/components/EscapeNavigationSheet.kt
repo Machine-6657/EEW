@@ -518,7 +518,7 @@ fun EscapeNavigationCard(
                     .fillMaxWidth()
                     .padding(12.dp)
             ) {
-                // 顶部：地震位置和导航状态
+                // 顶部：地震位置、震级和操作按钮
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -527,7 +527,7 @@ fun EscapeNavigationCard(
                     // 地震位置信息
                     Column(
                         modifier = Modifier
-                            .weight(1.2f)
+                            .weight(1.2f) // 保持原有权重
                             .padding(end = 12.dp)
                     ) {
                         Text(
@@ -549,7 +549,7 @@ fun EscapeNavigationCard(
                     if (earthquake != null) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.weight(0.6f)
+                            modifier = Modifier.weight(0.6f) // 保持原有权重
                         ) {
                             Text(
                                 text = "震级",
@@ -557,64 +557,37 @@ fun EscapeNavigationCard(
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium
                             )
-                            Box(
-                                modifier = Modifier
-                                    .padding(top = 2.dp)
-                                    .size(36.dp)
-                                    .background(
-                                        when {
-                                            earthquake.magnitude >= 6.0 -> Color(0xFFD32F2F)
-                                            earthquake.magnitude >= 5.0 -> Color(0xFFFF9800)
-                                            earthquake.magnitude >= 4.0 -> Color(0xFFFFC107)
-                                            else -> Color(0xFF4CAF50)
-                                        },
-                                        RoundedCornerShape(6.dp)
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "${earthquake.magnitude}",
-                                    color = Color.White,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
+                            Text(
+                                text = "${earthquake.magnitude}",
+                                color = when { 
+                                    earthquake.magnitude >= 6.0 -> Color(0xFFD32F2F) 
+                                    earthquake.magnitude >= 5.0 -> Color(0xFFFF9800) 
+                                    earthquake.magnitude >= 4.0 -> Color(0xFFFFC107) 
+                                    else -> Color(0xFF4CAF50) 
+                                },
+                                fontSize = 24.sp, 
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(top = 2.dp)
+                            )
                         }
                     }
                     
-                    // 导航状态和停止按钮
+                    // 右侧：返回按钮 (替换原导航状态和停止按钮)
                     Column(
-                        horizontalAlignment = Alignment.End,
-                        modifier = Modifier.weight(0.8f)
+                        horizontalAlignment = Alignment.End, // 保持末端对齐
+                        modifier = Modifier.weight(0.8f) // 保持原有权重
                     ) {
-                        Text(
-                            text = "导航状态",
-                            color = Color.DarkGray,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Button(
+                        IconButton(
                             onClick = {
-                                Log.d("EscapeNavSheetDebug", "EscapeNavigationCard: '停止'按钮点击")
-                                onStopNavigation()
+                                Log.d("EscapeNavSheetDebug", "EscapeNavigationCard: '撤销'按钮点击")
+                                onStopNavigation() // 点击执行停止导航
                             },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFFFF5722)
-                            ),
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier
-                                .height(36.dp)
-                                .padding(top = 2.dp)
+                            modifier = Modifier // 移除或调整 top padding 使其上移
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Stop,
-                                contentDescription = "停止导航",
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "停止",
-                                fontSize = 12.sp
+                                imageVector = Icons.Default.Undo, // <-- 修改图标为Undo
+                                contentDescription = "撤销导航", // 修改描述
+                                tint = Color.DarkGray 
                             )
                         }
                     }

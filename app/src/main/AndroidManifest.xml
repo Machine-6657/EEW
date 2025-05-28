@@ -12,6 +12,8 @@
     <!-- Foreground service permission for continuous monitoring -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <!-- Call permission for emergency contacts -->
+    <uses-permission android:name="android.permission.CALL_PHONE" />
     
     <!-- 高德地图所需权限 -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />

@@ -16,37 +16,37 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-// Dark color scheme for the app - 更鲜亮的配色方案
-private val DarkColorScheme = darkColorScheme(
-    primary = Primary,
-    secondary = Secondary,
-    tertiary = Accent,
-    background = Background,
-    surface = Surface,
-    onPrimary = TextPrimary,
-    onSecondary = TextPrimary,
-    onTertiary = TextPrimary,
-    onBackground = TextPrimary,
-    onSurface = TextPrimary
-)
-
-// Light color scheme for the app - 鲜亮配色方案也用于亮色模式
+// Light color scheme for the app - 蓝色主题浅色配色方案
 private val LightColorScheme = lightColorScheme(
     primary = Primary,
     secondary = Secondary,
     tertiary = Accent,
     background = Background,
     surface = Surface,
-    onPrimary = TextPrimary,
-    onSecondary = TextPrimary,
-    onTertiary = TextPrimary,
+    onPrimary = Color.White,
+    onSecondary = Color.White,
+    onTertiary = Color.White,
     onBackground = TextPrimary,
     onSurface = TextPrimary
 )
 
+// Dark color scheme for the app - 保留深色主题选项
+private val DarkColorScheme = darkColorScheme(
+    primary = Primary,
+    secondary = Secondary,
+    tertiary = Accent,
+    background = Color(0xFF121212),
+    surface = Color(0xFF1E1E1E),
+    onPrimary = Color.White,
+    onSecondary = Color.White,
+    onTertiary = Color.White,
+    onBackground = Color.White,
+    onSurface = Color.White
+)
+
 @Composable
 fun EEWappTheme(
-    darkTheme: Boolean = true, // 默认使用深色主题以突出显示鲜亮颜色
+    darkTheme: Boolean = false, // 默认使用浅色主题以突出蓝色配色
     // Dynamic color is available on Android 12+
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
@@ -63,13 +63,13 @@ fun EEWappTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            // window.statusBarColor = GreenEmphasis.toArgb() // 注释掉原来的绿色设置
-            window.statusBarColor = Color.White.toArgb() // 设置状态栏颜色为白色
+            // 设置状态栏颜色为背景的浅灰色
+            window.statusBarColor = Background.toArgb()
             
             // 设置系统UI控制
             WindowCompat.getInsetsController(window, view).apply {
-                // isAppearanceLightStatusBars = false // 原来的设置，浅色图标/文字
-                isAppearanceLightStatusBars = true // true 表示状态栏图标/文字为深色
+                // 浅灰色背景使用深色状态栏图标/文字
+                isAppearanceLightStatusBars = true // true 表示状态栏图标/文字为深色（适合浅色背景）
                 isAppearanceLightNavigationBars = true
             }
             

@@ -64,10 +64,10 @@ fun EarthquakeList(
     modifier: Modifier = Modifier
 ) {
     // 定义颜色常量
-    val RedEmphasis = Color(0xFF68C29F) // 绿色强调色，原为红色(0xFFD32F2F)
+    val BlueEmphasis = Color(0xFF1E90FF) // 蓝色强调色
     val TextPrimary = Color.Black // 主要文本颜色
     val TextSecondary = Color.DarkGray // 次要文本颜色
-    val BackgroundPrimary = Color.White // 主要背景色
+    val BackgroundPrimary = Color(0xFFF0F2F5) // 更明显的浅灰色背景
     val DividerColor = Color.LightGray.copy(alpha = 0.5f) // 分隔线颜色
 
     // --- START: 7-Day Filter Logic ---
@@ -101,7 +101,7 @@ fun EarthquakeList(
                 Icon(
                     imageVector = Icons.Default.Refresh,
                     contentDescription = "刷新",
-                    tint = RedEmphasis
+                    tint = BlueEmphasis
                 )
             }
         }
@@ -118,7 +118,7 @@ fun EarthquakeList(
                     text = "重要地震 (近7天)",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = RedEmphasis,
+                    color = BlueEmphasis,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
                 
@@ -180,7 +180,7 @@ fun EarthquakeItem(
     modifier: Modifier = Modifier
 ) {
     // 定义颜色常量
-    val RedEmphasis = Color(0xFF68C29F) // 绿色强调色，原为红色(0xFFD32F2F)
+    val BlueEmphasis = Color(0xFF1E90FF) // 蓝色强调色
     val TextPrimary = Color.Black // 主要文本颜色
     val TextSecondary = Color.DarkGray // 次要文本颜色
     val BackgroundPrimary = Color.White // 主要背景色
@@ -192,12 +192,13 @@ fun EarthquakeItem(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = BackgroundPrimary
+            containerColor = Color.White
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
+            defaultElevation = 2.dp,
+            pressedElevation = 4.dp
         )
     ) {
         Row(
@@ -318,7 +319,7 @@ fun SignificantEarthquakeItem(
     modifier: Modifier = Modifier
 ) {
     // 定义颜色常量
-    val RedEmphasis = Color(0xFF68C29F) // 绿色强调色，原为红色(0xFFD32F2F)
+    val BlueEmphasis = Color(0xFF1E90FF) // 蓝色强调色
     val TextPrimary = Color.Black // 主要文本颜色
     val TextSecondary = Color.DarkGray // 次要文本颜色
     val BackgroundPrimary = Color.White // 主要背景色
@@ -328,12 +329,13 @@ fun SignificantEarthquakeItem(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = BackgroundPrimary
+            containerColor = Color.White
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = 4.dp
+            defaultElevation = 3.dp,
+            pressedElevation = 6.dp
         )
     ) {
         Row(
@@ -409,7 +411,7 @@ fun SignificantEarthquakeItem(
                         text = "${impact.secondsUntilArrival}秒",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
-                        color = RedEmphasis
+                        color = BlueEmphasis
                     )
                 }
                 
@@ -498,7 +500,7 @@ private fun EmptyStateContent(
 ) {
     val TextPrimary = Color.Black
     val TextSecondary = Color.DarkGray
-    val AccentColor = Color(0xFF68C29F) // 绿色强调色，原为红色(0xFFD32F2F)
+    val AccentColor = Color(0xFF1E90FF) // 蓝色强调色
     
     Box(
         modifier = modifier

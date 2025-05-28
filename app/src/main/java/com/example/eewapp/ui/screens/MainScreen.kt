@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
@@ -21,6 +22,10 @@ import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.ImportContacts
+import androidx.compose.material.icons.filled.NewReleases
+import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -142,7 +147,7 @@ fun MainScreen(viewModel: EarthquakeViewModel = androidx.lifecycle.viewmodel.com
                 onRefresh = { viewModel.refreshEarthquakes() },
                 isLoading = isLoading
             )
-            2 -> SafetyTab()
+            2 -> SafetyGuideScreen()
             3 -> SettingsScreen()
         }
         
@@ -193,26 +198,38 @@ fun BottomNavigation(
     modifier: Modifier = Modifier
 ) {
     // 定义颜色常量
-    val RedEmphasis = Color(0xFF68C29F) // 绿色强调色，原为红色(0xFFD32F2F)
+    val BlueEmphasis = Color(0xFF1E90FF) // 蓝色强调色
     val TextPrimary = Color.Black // 主要文本颜色
     val TextSecondary = Color.DarkGray // 次要文本颜色
-    val BackgroundPrimary = Color.White // 主要背景色
+    val BackgroundPrimary = Color(0xFFF0F2F5) // 更明显的浅灰色背景
 
     BottomAppBar(
         modifier = modifier
             .fillMaxWidth()
-            .height(60.dp),
-        containerColor = BackgroundPrimary, // 白色背景
+            .height(52.dp),
+        containerColor = BackgroundPrimary,
         contentColor = TextPrimary
     ) {
         NavigationBarItem(
             selected = selectedTab == 0,
             onClick = { onTabSelected(0) },
-            icon = { Icon(Icons.Default.LocationOn, contentDescription = "地图") },
-            label = { Text("地图") },
+            icon = { 
+                Icon(
+                    Icons.Default.Public, 
+                    contentDescription = "地图",
+                    modifier = Modifier.size(24.dp)
+                ) 
+            },
+            label = { 
+                Text(
+                    "地图",
+                    fontSize = 12.sp,
+                    modifier = Modifier.offset(y = (-7).dp)
+                ) 
+            },
             colors = androidx.compose.material3.NavigationBarItemDefaults.colors(
-                selectedIconColor = RedEmphasis,
-                selectedTextColor = RedEmphasis,
+                selectedIconColor = BlueEmphasis,
+                selectedTextColor = BlueEmphasis,
                 indicatorColor = Color.Transparent,
                 unselectedIconColor = TextSecondary,
                 unselectedTextColor = TextSecondary
@@ -221,11 +238,23 @@ fun BottomNavigation(
         NavigationBarItem(
             selected = selectedTab == 1,
             onClick = { onTabSelected(1) },
-            icon = { Icon(Icons.Default.List, contentDescription = "地震") },
-            label = { Text("地震") },
+            icon = { 
+                Icon(
+                    Icons.Default.Sort, 
+                    contentDescription = "地震",
+                    modifier = Modifier.size(24.dp)
+                ) 
+            },
+            label = { 
+                Text(
+                    "地震",
+                    fontSize = 12.sp,
+                    modifier = Modifier.offset(y = (-7).dp)
+                ) 
+            },
             colors = androidx.compose.material3.NavigationBarItemDefaults.colors(
-                selectedIconColor = RedEmphasis,
-                selectedTextColor = RedEmphasis,
+                selectedIconColor = BlueEmphasis,
+                selectedTextColor = BlueEmphasis,
                 indicatorColor = Color.Transparent,
                 unselectedIconColor = TextSecondary,
                 unselectedTextColor = TextSecondary
@@ -234,11 +263,23 @@ fun BottomNavigation(
         NavigationBarItem(
             selected = selectedTab == 2,
             onClick = { onTabSelected(2) },
-            icon = { Icon(Icons.Default.Info, contentDescription = "指南") },
-            label = { Text("指南") },
+            icon = { 
+                Icon(
+                    Icons.Default.ImportContacts, 
+                    contentDescription = "指南",
+                    modifier = Modifier.size(24.dp)
+                ) 
+            },
+            label = { 
+                Text(
+                    "指南",
+                    fontSize = 12.sp,
+                    modifier = Modifier.offset(y = (-7).dp)
+                ) 
+            },
             colors = androidx.compose.material3.NavigationBarItemDefaults.colors(
-                selectedIconColor = RedEmphasis,
-                selectedTextColor = RedEmphasis,
+                selectedIconColor = BlueEmphasis,
+                selectedTextColor = BlueEmphasis,
                 indicatorColor = Color.Transparent,
                 unselectedIconColor = TextSecondary,
                 unselectedTextColor = TextSecondary
@@ -247,11 +288,23 @@ fun BottomNavigation(
         NavigationBarItem(
             selected = selectedTab == 3,
             onClick = { onTabSelected(3) },
-            icon = { Icon(Icons.Default.Settings, contentDescription = "设置") },
-            label = { Text("设置") },
+            icon = { 
+                Icon(
+                    Icons.Default.Settings, 
+                    contentDescription = "设置",
+                    modifier = Modifier.size(24.dp)
+                ) 
+            },
+            label = { 
+                Text(
+                    "设置",
+                    fontSize = 12.sp,
+                    modifier = Modifier.offset(y = (-7).dp)
+                ) 
+            },
             colors = androidx.compose.material3.NavigationBarItemDefaults.colors(
-                selectedIconColor = RedEmphasis,
-                selectedTextColor = RedEmphasis,
+                selectedIconColor = BlueEmphasis,
+                selectedTextColor = BlueEmphasis,
                 indicatorColor = Color.Transparent,
                 unselectedIconColor = TextSecondary,
                 unselectedTextColor = TextSecondary
@@ -319,85 +372,8 @@ fun ListTab(
 }
 
 /**
- * 安全标签内容
+ * 安全标签内容 - 调用外部的SafetyGuideScreen
  */
-@Composable
-fun SafetyTab() {
-    // 定义颜色常量
-    val RedEmphasis = Color(0xFF68C29F) // 绿色强调色，原为红色(0xFFD32F2F)
-    val TextPrimary = Color.Black // 主要文本颜色
-    val TextSecondary = Color.DarkGray // 次要文本颜色
-    val BackgroundPrimary = Color.White // 主要背景色
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BackgroundPrimary)
-            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 72.dp)
-    ) {
-        Text(
-            text = "地震安全指南",
-            style = MaterialTheme.typography.headlineMedium,
-            color = RedEmphasis,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-        
-        Text(
-            text = "地震前准备：",
-            style = MaterialTheme.typography.titleMedium,
-            color = RedEmphasis,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        
-        Text(
-            text = "• 制定应急计划并与家人一起练习\n" +
-                   "• 准备应急包，包含食物、水和必要物品\n" +
-                   "• 固定重家具和可能坠落的物品\n" +
-                   "• 了解如何关闭燃气、水和电",
-            style = MaterialTheme.typography.bodyMedium,
-            color = TextPrimary,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-        
-        Text(
-            text = "地震发生时：",
-            style = MaterialTheme.typography.titleMedium,
-            color = RedEmphasis,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        
-        Text(
-            text = "• 趴下、掩护、抓牢\n" +
-                   "• 躲在坚固的桌子下或靠近内墙\n" +
-                   "• 远离窗户、外墙和可能坠落的物品\n" +
-                   "• 如果在户外，移动到远离建筑物和电线的开阔区域",
-            style = MaterialTheme.typography.bodyMedium,
-            color = TextPrimary,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-        
-        Text(
-            text = "地震后处理：",
-            style = MaterialTheme.typography.titleMedium,
-            color = RedEmphasis,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        
-        Text(
-            text = "• 检查自己和他人是否受伤\n" +
-                   "• 警惕余震\n" +
-                   "• 收听紧急广播获取信息\n" +
-                   "• 检查燃气泄漏、水和电力损坏\n" +
-                   "• 如果建筑物不安全，请撤离",
-            style = MaterialTheme.typography.bodyMedium,
-            color = TextPrimary
-        )
-    }
-}
 
 /**
  * 权限请求组件
@@ -408,10 +384,10 @@ fun PermissionRequest(
     modifier: Modifier = Modifier
 ) {
     // 定义颜色常量
-    val RedEmphasis = Color(0xFF68C29F) // 绿色强调色，原为红色(0xFFD32F2F)
+    val BlueEmphasis = Color(0xFF1E90FF) // 蓝色强调色
     val TextPrimary = Color.Black // 主要文本颜色
     val TextSecondary = Color.DarkGray // 次要文本颜色
-    val BackgroundPrimary = Color.White // 主要背景色
+    val BackgroundPrimary = Color(0xFFF0F2F5) // 更明显的浅灰色背景
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -422,7 +398,7 @@ fun PermissionRequest(
         Text(
             text = "需要位置权限",
             style = MaterialTheme.typography.titleLarge,
-            color = RedEmphasis,
+            color = BlueEmphasis,
             fontWeight = FontWeight.Bold
         )
         
@@ -437,7 +413,7 @@ fun PermissionRequest(
             onClick = onRequestPermission,
             modifier = Modifier.padding(top = 8.dp),
             colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                containerColor = RedEmphasis
+                containerColor = BlueEmphasis
             )
         ) {
             Text("授予权限")

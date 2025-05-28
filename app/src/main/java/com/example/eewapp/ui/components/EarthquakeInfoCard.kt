@@ -30,6 +30,8 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.WbTwilight
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
@@ -71,6 +73,8 @@ import java.util.Locale
 import kotlinx.coroutines.delay
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.PaddingValues
 
 // 定义颜色常量
 private val RedEmphasis = Color(0xFFD32F2F) // 红色强调色
@@ -95,6 +99,9 @@ fun EarthquakeInfoCard(
 ) {
     val backgroundColor = Color.White
     
+    // 紧急联系弹窗状态
+    var showEmergencyContactDialog by remember { mutableStateOf(false) }
+    
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -111,71 +118,115 @@ fun EarthquakeInfoCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(6.dp)
+                .padding(10.dp)
         ) {
-            // 地震位置和震级信息
+            // 地震位置和震级信息 - 重新设计布局
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(IntrinsicSize.Min),
+                    .height(70.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top
             ) {
+                // 左侧：震中位置
                 Column(
                     modifier = Modifier
-                        .weight(1.6f)
-                        .padding(end = 12.dp)
-                        .fillMaxHeight()
+                        .weight(1.2f)
+                        .padding(end = 8.dp)
+                        .fillMaxHeight(),
+                    verticalArrangement = Arrangement.Top
                 ) {
                     Text(
                         text = "震中位置",
                         color = TextSecondary,
-                        fontSize = 12.sp,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Medium
                     )
                     
                     Text(
                         text = earthquake.location.place,
                         color = TextPrimary,
-                        fontSize = 14.sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 1.dp),
-                        maxLines = 1,
+                        modifier = Modifier.padding(top = 4.dp),
+                        maxLines = 2,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                 }
+                
+                // 中间：预警震级
                 Column(
-                    horizontalAlignment = Alignment.Start,
+                    horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
-                        .weight(1.6f)
-                        .fillMaxHeight()
+                        .weight(0.8f)
+                        .fillMaxHeight(),
+                    verticalArrangement = Arrangement.Top
                 ) {
-                    Row(verticalAlignment = Alignment.Top) {
-                        Text(
-                            text = "预警震级",
-                            color = TextSecondary,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(end = 4.dp)
-                        )
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .background(getMagnitudeColor(earthquake.magnitude), RoundedCornerShape(4.dp)),
-                            contentAlignment = Alignment.Center
+                    Text(
+                        text = "预警震级",
+                        color = TextSecondary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center
+                    )
+                    
+                    // 震级文字，去掉box包裹，使用对应颜色
+                    Text(
+                        text = "${earthquake.magnitude}",
+                        color = getMagnitudeColor(earthquake.magnitude),
+                        fontSize = 30.sp, // 和震中位置字体大小一致
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+                
+                // 右侧：紧急联系按钮
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    modifier = Modifier
+                        .weight(0.8f)
+                        .fillMaxHeight(),
+                    verticalArrangement = Arrangement.Top
+                ) {
+                    Button(
+                        onClick = { 
+                            showEmergencyContactDialog = true
+                        },
+                        modifier = Modifier
+                            .size(56.dp), // 从64.dp减少到56.dp
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFE53E3E),
+                            contentColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
+                        contentPadding = PaddingValues(all = 3.dp) // 从4.dp减少到3.dp
+                    ) {
+                        Column( // 使用Column实现垂直布局
+                            horizontalAlignment = Alignment.CenterHorizontally, // 水平居中
+                            verticalArrangement = Arrangement.Center // 垂直居中内容
                         ) {
+                            Icon(
+                                imageVector = Icons.Default.Call,
+                                contentDescription = "紧急联系",
+                                modifier = Modifier.size(18.dp), // 从20.dp减少到18.dp
+                                tint = Color.White
+                            )
+                            Spacer(modifier = Modifier.height(1.dp)) // 从2.dp减少到1.dp
                             Text(
-                                text = "${earthquake.magnitude}",
+                                text = "紧急\n联系", // 改回两行文本
+                                fontSize = 9.sp, // 从10.sp减少到9.sp
+                                fontWeight = FontWeight.Bold,
                                 color = Color.White,
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.Bold
+                                textAlign = TextAlign.Center,
+                                lineHeight = 10.sp // 从11.sp减少到10.sp
                             )
                         }
                     }
                 }
             }
             
-            Spacer(modifier = Modifier.height(8.dp)) // 调整间距，之前是6，移除了横向分割线后稍微加大一点
+            Spacer(modifier = Modifier.height(8.dp))
             
             // 预计到达时间 和 预估震感 (带竖直分隔线)
             var remainingSeconds by remember { mutableStateOf(impact.secondsUntilArrival) }
@@ -193,7 +244,7 @@ fun EarthquakeInfoCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 4.dp)
-                    .height(IntrinsicSize.Min), // 确保Divider能正确填充高度
+                    .height(IntrinsicSize.Min),
                 verticalAlignment = Alignment.CenterVertically 
             ) {
                 // 左侧: 预计到达时间
@@ -208,18 +259,18 @@ fun EarthquakeInfoCard(
                             tint = RedEmphasis,
                             modifier = Modifier.size(20.dp)
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Column {
                             Text(
                                 text = "预计到达时间",
                                 color = TextPrimary,
-                                fontSize = 12.sp,
+                                fontSize = 13.sp,
                                 fontWeight = FontWeight.Medium
                             )
                             Text(
                                 text = if (remainingSeconds > 0) "${remainingSeconds} 秒后" else "已到达",
                                 color = RedEmphasis,
-                                fontSize = 16.sp, 
+                                fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -229,34 +280,34 @@ fun EarthquakeInfoCard(
                 Divider(
                     color = Color.LightGray.copy(alpha = 0.6f),
                     modifier = Modifier
-                        .fillMaxHeight(0.8f) // 填充80%的高度，避免完全顶到边
+                        .fillMaxHeight(0.8f)
                         .width(0.8.dp)
                 )
 
                 // 右侧: 预估震感
                 Column(
-                    modifier = Modifier.weight(1f).padding(start = 8.dp), // 给右侧内容加一点左边距
+                    modifier = Modifier.weight(1f).padding(start = 8.dp),
                     horizontalAlignment = Alignment.Start 
                 ) {
                      Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = Icons.Default.Warning, 
+                            imageVector = Icons.Default.WbTwilight, 
                             contentDescription = "预估震感",
                             tint = getIntensityColor(impact.intensity),
                             modifier = Modifier.size(20.dp)
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Column {
                             Text(
                                 text = "预估震感",
                                 color = TextPrimary,
-                                fontSize = 12.sp,
+                                fontSize = 13.sp,
                                 fontWeight = FontWeight.Medium
                             )
                             Text(
                                 text = getIntensityText(impact.intensity),
                                 color = getIntensityColor(impact.intensity),
-                                fontSize = 16.sp,
+                                fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -264,86 +315,78 @@ fun EarthquakeInfoCard(
                 }
             }
             
-            Spacer(modifier = Modifier.height(8.dp)) // 调整间距
+            Spacer(modifier = Modifier.height(8.dp))
             
             // 地震详细信息 (带竖直分隔线)
             Column {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(IntrinsicSize.Min), // 确保Divider能正确填充高度
+                        .height(IntrinsicSize.Min),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Top
                 ) {
                     InfoRow(
-                        icon = Icons.Default.LocationOn,
                         label = "震中坐标",
                         value = "东经${String.format("%.1f", earthquake.location.longitude)}° 北纬${String.format("%.1f", earthquake.location.latitude)}°",
-                        modifier = Modifier.weight(1f).padding(end = 8.dp), // 增加右边距给分隔线空间
-                        iconTint = RedOrange 
+                        modifier = Modifier.weight(1f).padding(end = 8.dp)
                     )
                     Divider(
                         color = Color.LightGray.copy(alpha = 0.6f),
                         modifier = Modifier
-                            .fillMaxHeight(0.9f) // 稍微调整填充高度
+                            .fillMaxHeight(0.9f)
                             .width(0.8.dp)
                     )
                     InfoRow(
-                        icon = Icons.Default.Place,
                         label = "震中距离",
                         value = "${impact.distanceFromUser.toInt()} 公里",
-                        modifier = Modifier.weight(1f).padding(start = 8.dp), // 增加左边距
-                        iconTint = SkyBlue
+                        modifier = Modifier.weight(1f).padding(start = 8.dp)
                     )
                 }
                 
-                Spacer(modifier = Modifier.height(10.dp)) // 稍微加大行间距
+                Spacer(modifier = Modifier.height(8.dp))
                 
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(IntrinsicSize.Min), // 确保Divider能正确填充高度
+                        .height(IntrinsicSize.Min),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Top
                 ) {
                     InfoRow(
-                        icon = Icons.Default.Info,
                         label = "震源深度",
                         value = "${earthquake.depth.toInt()} 公里",
-                        modifier = Modifier.weight(1f).padding(end = 8.dp), // 增加右边距
-                        iconTint = TenderGreen
+                        modifier = Modifier.weight(1f).padding(end = 8.dp)
                     )
                     Divider(
                         color = Color.LightGray.copy(alpha = 0.6f),
                         modifier = Modifier
-                            .fillMaxHeight(0.9f) // 稍微调整填充高度
+                            .fillMaxHeight(0.9f)
                             .width(0.8.dp)
                     )
                     InfoRow(
-                        icon = Icons.Default.Schedule,
                         label = "发震时间",
                         value = formatDate(earthquake.time),
-                        modifier = Modifier.weight(1f).padding(start = 8.dp), // 增加左边距
-                        iconTint = OrangeYellow
+                        modifier = Modifier.weight(1f).padding(start = 8.dp)
                     )
                 }
             }
-            
+
             // 逃生导航按钮区域（仅在模拟地震时显示）
             if (earthquake.id.startsWith("simulated-") && onEscapeNavigation != null) {
-                Spacer(modifier = Modifier.height(6.dp)) // 进一步从8dp减少到6dp
+                Spacer(modifier = Modifier.height(6.dp))
                 
                 Button(
                     onClick = onEscapeNavigation,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(36.dp), // 从42dp减少到36dp
+                        .height(32.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFF2196F3),
                         contentColor = Color.White
                     ),
-                    shape = RoundedCornerShape(8.dp), // 从10dp减少到8dp
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp) // 从3dp减少到2dp
+                    shape = RoundedCornerShape(8.dp),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -352,40 +395,46 @@ fun EarthquakeInfoCard(
                         Icon(
                             imageVector = Icons.Default.Navigation,
                             contentDescription = "逃生导航",
-                            modifier = Modifier.size(16.dp) // 从18dp减少到16dp
+                            modifier = Modifier.size(16.dp)
                         )
                         
-                        Spacer(modifier = Modifier.width(4.dp)) // 从6dp减少到4dp
+                        Spacer(modifier = Modifier.width(4.dp))
                         
                         Text(
                             text = "逃生导航",
-                            fontSize = 13.sp, // 从14sp减少到13sp
+                            fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         )
                         
-                        Spacer(modifier = Modifier.width(4.dp)) // 从6dp减少到4dp
+                        Spacer(modifier = Modifier.width(4.dp))
                         
                         Icon(
                             imageVector = Icons.Default.DirectionsRun,
                             contentDescription = "紧急逃生",
-                            modifier = Modifier.size(16.dp) // 从18dp减少到16dp
+                            modifier = Modifier.size(16.dp)
                         )
                     }
                 }
                 
                 // 提示文本
                 Text(
-                    text = "💡 查找附近安全避难场所",
-                    fontSize = 10.sp, // 从11sp减少到10sp
+                    text = "地震来临，请勿慌张，依据指南及时自救",
+                    fontSize = 10.sp,
                     color = Color(0xFF2196F3),
                     textAlign = TextAlign.Center,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 4.dp) // 从6dp减少到4dp
+                        .padding(top = 2.dp)
                 )
             }
         }
     }
+    
+    // 紧急联系弹窗
+    EmergencyContactDialog(
+        isVisible = showEmergencyContactDialog,
+        onDismiss = { showEmergencyContactDialog = false }
+    )
 }
 
 /**
@@ -393,27 +442,28 @@ fun EarthquakeInfoCard(
  */
 @Composable
 private fun InfoRow(
-    icon: ImageVector,
+    icon: ImageVector? = null,
     label: String,
     value: String,
     valueColor: Color = TextPrimary,
     modifier: Modifier = Modifier,
-    iconTint: Color = TextSecondary // 新增 iconTint 参数，默认为 TextSecondary
+    iconTint: Color = TextSecondary
 ) {
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.Top
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = iconTint, // 使用传入的 iconTint
-            modifier = Modifier
-                .size(14.dp)
-                .padding(top = 1.dp)
-        )
-        
-        Spacer(modifier = Modifier.width(4.dp))
+        if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier
+                    .size(14.dp)
+                    .padding(top = 1.dp)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+        }
         
         Column(
             modifier = Modifier.weight(1f)

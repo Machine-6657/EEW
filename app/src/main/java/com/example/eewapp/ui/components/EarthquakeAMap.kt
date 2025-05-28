@@ -639,7 +639,7 @@ fun EarthquakeAMap(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally // 水平居中图标和文本
             ) {
-                // 震中按钮 (红色)
+                // 震中按钮 (白底蓝字)
                 Surface(
                     modifier = Modifier
                         .size(width = 56.dp, height = 56.dp) // 定义按钮尺寸
@@ -665,25 +665,25 @@ fun EarthquakeAMap(
                         verticalArrangement = Arrangement.Center,
                         modifier = Modifier.padding(4.dp) // 内部间距
                     ) {
-                        // TODO: 替换为图片中的同心圆图标，这里暂时用一个红色图标代替
+                        // TODO: 替换为图片中的同心圆图标，这里暂时用一个玫红色图标代替
                         Icon(
                             // painter = painterResource(id = R.drawable.ic_epicenter_icon), // 暂时注释掉，因为资源不存在
                             imageVector = Icons.Filled.Adjust, // 使用系统图标作为临时替代
                             contentDescription = "定位到最新模拟震中",
-                            tint = ComposeColor.Red, // 图标颜色设为红色
+                            tint = ComposeColor(0xFFCD7F7F), // 图标颜色改为饱和度低的玫红色
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(modifier = Modifier.height(1.5.dp)) // 图标和文字间距
                         Text(
                             text = "震中",
-                            color = ComposeColor.Red, // 文字颜色设为红色
+                            color = ComposeColor(0xFFCD7F7F), // 文字颜色改为饱和度低的玫红色
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
                 }
 
-                // 我的位置按钮 (蓝色)
+                // 我的位置按钮 (白底蓝字)
                 Surface(
                     modifier = Modifier
                         .size(width = 56.dp, height = 56.dp)
@@ -700,15 +700,23 @@ fun EarthquakeAMap(
                     color = ComposeColor.White,
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize()
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier.padding(4.dp) // 内部间距
                     ) {
                         Icon(
                             imageVector = Icons.Default.MyLocation,
                             contentDescription = "我的位置",
-                            tint = ComposeColor(0xFF2196F3),
+                            tint = ComposeColor(0xFF1E90FF), // 保持蓝色
                             modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.height(1.5.dp)) // 图标和文字间距
+                        Text(
+                            text = "我的",
+                            color = ComposeColor(0xFF1E90FF), // 添加蓝色文字
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
@@ -918,42 +926,6 @@ fun EarthquakeAMap(
         )
         // --- ---
 
-        // 显示当前选中的地震信息卡片 (如果选中且无当前影响, 且选中的是模拟或近7天的)
-        AnimatedVisibility(
-             visible = localSelectedEarthquake != null && currentImpact == null &&
-                     (localSelectedEarthquake?.id?.startsWith("simulated-") == true || (localSelectedEarthquake?.time?.time ?: 0) >= sevenDaysAgoMillis),
-             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 95.dp, start = 16.dp, end = 16.dp)
-        ) {
-            localSelectedEarthquake?.let { eq ->
-                // 查找影响数据时，如果是模拟的，直接用 selectedImpact，否则从 recentSignificantEarthquakes 查找
-                val impactToShow = if (eq.id.startsWith("simulated-")) {
-                     selectedImpact // Should be the simulated impact
-                 } else {
-                     recentSignificantEarthquakes.find { it.earthquake.id == eq.id }
-                 }
-
-                if (impactToShow != null){
-                     EarthquakeInfoCardCompact(
-                         earthquake = eq,
-                         impact = impactToShow,
-                         onClose = {
-                              localSelectedEarthquake = null
-                              // Also clear selectedImpact if it matches the closed earthquake, unless it's the current real impact
-                              if (selectedImpact?.earthquake?.id == eq.id && currentImpact?.earthquake?.id != eq.id) {
-                                   selectedImpact = null
-                              }
-                         }
-                     )
-                 } else {
-                     // 只显示简化卡片或日志，因为没有找到对应的近期重要影响数据
-                    Log.d("EarthquakeAMap", "Selected recent earthquake ${eq.title} has no matching recent significant impact data to show full card.")
-                    // Optionally show a simplified card here:
-                    // SimplifiedEarthquakeCard(earthquake = eq, onClose = { localSelectedEarthquake = null })
-                 }
-            }
-        }
 
         // 显示地震信息卡片（导航时隐藏）
         AnimatedVisibility(
@@ -1002,9 +974,9 @@ fun EarthquakeAMap(
                     if (route.routePoints.isNotEmpty()) {
                         Log.d("EarthquakeAMap", "  起点: ${route.routePoints.first()}")
                         Log.d("EarthquakeAMap", "  终点: ${route.routePoints.last()}")
-                    }
-                }
-                
+    }
+}
+
                 SafetyLocationMarkers(
                     aMap = currentAMapInstance, // 使用局部非空变量
                     safetyLocations = escapeNavigationState.safetyLocations,
@@ -1111,7 +1083,7 @@ fun EarthquakeAMap(
                 try {
                     polylineObjectInState.javaClass.getMethod("remove").invoke(polylineObjectInState)
                     Log.d("EarthquakeAMapDebug", "Parent Cleanup LE: Successfully removed polyline $polylineObjectInState from map.")
-                } catch (e: Exception) {
+    } catch (e: Exception) {
                     Log.e("EarthquakeAMapDebug", "Parent Cleanup LE: Error removing polyline $polylineObjectInState from map.", e)
                 }
                 // Update the state to reflect removal, only if it wasn't already null by another means.
@@ -1241,230 +1213,6 @@ private fun animateCameraWithPadding(aMap: Any, latLng: Any, zoom: Float) {
     }
 }
 
-/**
- * 地震信息卡片 - 紧凑样式
- */
-@Composable
-fun EarthquakeInfoCardCompact(
-    earthquake: Earthquake,
-    impact: EarthquakeImpact,
-    onClose: () -> Unit
-) {
-    // 定义颜色常量
-    val RedEmphasis = ComposeColor(0xFF68C29F) // 绿色强调色，原为红色(0xFFD32F2F)
-    val TextPrimary = ComposeColor.Black // 主要文本颜色
-    val TextSecondary = ComposeColor.DarkGray // 次要文本颜色
-    val BackgroundPrimary = ComposeColor.White // 主要背景色
-    val WarningBackground = ComposeColor(0xFFFFF3E0) // 警告背景色
-    
-    // 使用白色背景
-    val cardBackgroundColor = ComposeColor.White
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = cardBackgroundColor,
-            contentColor = TextPrimary
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 8.dp
-        ),
-        border = androidx.compose.foundation.BorderStroke(
-            width = 1.dp,
-            color = ComposeColor.LightGray.copy(alpha = 0.3f)
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp) // 从12dp减少到8dp
-        ) {
-            // 使用三列布局，每列包含标签和值
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                // 震中列
-                Column(
-                    horizontalAlignment = Alignment.Start,
-                    modifier = Modifier
-                        .weight(1.2f)
-                ) {
-                    Text(
-                        text = "震中",
-                        color = TextSecondary,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    
-                    Text(
-                        text = earthquake.location.place,
-                        color = TextPrimary,
-                        style = MaterialTheme.typography.titleSmall, // 从titleMedium改为titleSmall
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 2.dp), // 从4dp减少到2dp
-                        maxLines = 1, // 从2行减少到1行
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                        lineHeight = 16.sp // 从18sp减少到16sp
-                    )
-                }
-                
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                // 预警震级列
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.weight(0.4f)
-                ) {
-                    Text(
-                        text = "预警震级",
-                        color = TextSecondary,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    
-                    Box(
-                        modifier = Modifier
-                            .padding(top = 2.dp) // 从4dp减少到2dp
-                            .size(32.dp) // 从42dp减少到32dp
-                            .background(
-                                when {
-                                    earthquake.magnitude >= 6.0 -> ComposeColor(android.graphics.Color.rgb(239, 83, 80)) // 柔和红色 (6级及以上)
-                                    earthquake.magnitude >= 5.0 -> ComposeColor(android.graphics.Color.rgb(255, 167, 38)) // 柔和橙色 (5-5.9级)
-                                    earthquake.magnitude >= 4.0 -> ComposeColor(android.graphics.Color.rgb(255, 220, 79)) // 更暗的黄色 (4-4.9级)
-                                    else -> ComposeColor(android.graphics.Color.rgb(129, 199, 132)) // 柔和绿色 (小于4级)
-                                }, 
-                                RoundedCornerShape(4.dp) // 从6dp减少到4dp
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "${earthquake.magnitude}",
-                            color = ComposeColor.White, // 改为白色文字
-                            fontSize = 13.sp, // 添加明确的字体大小
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-                
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                // 预估震感列
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.weight(0.4f)
-                ) {
-                    Text(
-                        text = "预估震感",
-                        color = TextSecondary,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    
-                    Text(
-                        text = "${getIntensityText(impact.intensity)}",
-                        color = getIntensityColorNew(impact.intensity),
-                            fontSize = 16.sp, // 从titleLarge改为明确的字体大小
-                        fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(top = 4.dp) // 从8dp减少到4dp
-                    )
-                }
-            }
-            
-            Divider(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp), // 从16dp减少到8dp
-                color = ComposeColor.LightGray.copy(alpha = 0.5f),
-                thickness = 1.dp
-            )
-            
-            // 地震详细信息
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp), // 从6dp减少到4dp
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // 位置信息
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 4.dp)
-                ) {
-                    InfoRowCompact(
-                        icon = Icons.Filled.LocationOn,
-                        label = "震中位置",
-                        value = "东经${String.format("%.1f", earthquake.location.longitude)}°, 北纬${String.format("%.1f", earthquake.location.latitude)}°"
-                    )
-                }
-                
-                // 时间信息
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 4.dp)
-                ) {
-                    InfoRowCompact(
-                        icon = Icons.Filled.Timer,
-                        label = "发生时间",
-                        value = formatDate(earthquake.time)
-                    )
-                }
-            }
-            
-            // 预警信息行
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp), // 从6dp减少到4dp
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // 距离信息
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 4.dp)
-                ) {
-                    InfoRowCompact(
-                        icon = Icons.Filled.LocationOn,
-                        label = "震中距离",
-                        value = "${impact.distanceFromUser.toInt()}公里"
-                    )
-                }
-                
-                // 预警时间
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 4.dp)
-                ) {
-                    // 使用 remember 和 LaunchedEffect 来实现倒计时
-                    var remainingSeconds by remember { mutableStateOf(impact.secondsUntilArrival) }
-                    
-                    LaunchedEffect(impact.estimatedArrivalTime) {
-                        while (remainingSeconds > 0) {
-                            delay(1000) // 每秒更新一次
-                            val currentTime = System.currentTimeMillis()
-                            val newRemainingSeconds = ((impact.estimatedArrivalTime - currentTime) / 1000).toInt()
-                            remainingSeconds = maxOf(0, newRemainingSeconds)
-                        }
-                    }
-                    
-                    // 使用 InfoRowCompact 替换原来的 Box 布局
-                    InfoRowCompact(
-                        icon = Icons.Filled.Timer,
-                        label = "预计到达时间",
-                        value = if (remainingSeconds > 0) "${remainingSeconds}秒后" else "已到达",
-                        valueColor = ComposeColor(0xFFE57373), // Pass the specific red color for value
-                        iconTint = ComposeColor(0xFFE57373) // Pass the specific red color for icon
-                    )
-                }
-            }
-        }
-    }
-}
 
 /**
  * 信息行组件 - 紧凑样式
@@ -1542,10 +1290,10 @@ fun CollapsibleControlPanel(
     panelBackgroundColor: ComposeColor = ComposeColor.White.copy(alpha = 0.8f),
     handleIcon: ImageVector = Icons.Default.ChevronRight,
     handleExpandedIcon: ImageVector = Icons.Default.ChevronLeft,
-    handleBackgroundColor: ComposeColor = ComposeColor(0xFF68C29F),
-    handleContentColor: ComposeColor = ComposeColor.White,
-    buttonContainerColor: ComposeColor = ComposeColor(0xFF68C29F),
-    buttonContentColor: ComposeColor = ComposeColor.Black,
+    handleBackgroundColor: ComposeColor = ComposeColor.White, // 改为白色背景
+    handleIconColor: ComposeColor = ComposeColor(0xFF1E90FF), // 改为蓝色图标
+    buttonContainerColor: ComposeColor = ComposeColor(0xFF1E90FF),
+    buttonContentColor: ComposeColor = ComposeColor.White,
     onSimulate: () -> Unit,
     onCancel: () -> Unit
 ) {
@@ -1555,17 +1303,18 @@ fun CollapsibleControlPanel(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Handle (Icon Button)
+        // Handle (Icon Button) - 白色背景，蓝色图标
         IconButton(
             onClick = { isPanelExpanded = !isPanelExpanded },
             modifier = Modifier
                 .padding(end = if (isPanelExpanded) 4.dp else 0.dp)
                 .background(handleBackgroundColor, CircleShape)
+                .shadow(4.dp, CircleShape) // 添加阴影效果
         ) {
             Icon(
                 imageVector = if (isPanelExpanded) handleExpandedIcon else handleIcon,
                 contentDescription = if (isPanelExpanded) "隐藏控制面板" else "显示控制面板",
-                tint = handleContentColor
+                tint = handleIconColor
             )
         }
 
@@ -1845,4 +1594,4 @@ private fun SafetyLocationMarkers(
             }
         }
     }
-}
+} 

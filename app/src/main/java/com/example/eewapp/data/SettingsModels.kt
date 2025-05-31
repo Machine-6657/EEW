@@ -1,6 +1,7 @@
 package com.example.eewapp.data
 
 import androidx.compose.runtime.Immutable
+import com.example.eewapp.R
 
 /**
  * 应用设置数据模型
@@ -67,7 +68,7 @@ enum class Language(val displayName: String) {
 /**
  * 单位枚举
  */
-enum class MeasurementUnit(val displayName: String) {
-    METRIC("公制 (公里)"),
-    IMPERIAL("英制 (英里)")
+enum class MeasurementUnit(val displayResId: Int) {
+    METRIC(R.string.settings_unit_metric),
+    IMPERIAL(R.string.settings_unit_imperial)
 } 

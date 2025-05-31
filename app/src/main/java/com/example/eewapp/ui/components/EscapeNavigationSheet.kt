@@ -603,32 +603,34 @@ fun EscapeNavigationCard(
                             .background(Color(0xFF2196F3).copy(alpha = 0.1f), RoundedCornerShape(6.dp))
                             .padding(10.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Navigation,
-                                contentDescription = null,
-                                tint = Color(0xFF2196F3),
-                                modifier = Modifier.size(20.dp)
-                            )
-                            
-                            Spacer(modifier = Modifier.width(8.dp))
-                            
-                            Column {
+                        Column { // 外层用 Column 包裹两行
+                            Row( // 第一行：图标和目标地点
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Navigation,
+                                    contentDescription = null,
+                                    tint = Color(0xFF2196F3),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "导航至：${currentRoute.destination.name}",
+                                    text = "寻航至：${currentRoute.destination.name}",
                                     color = Color.Black,
                                     fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = "${String.format("%.1f", currentRoute.distanceInMeters / 1000)} 公里 · ${currentRoute.estimatedDurationMinutes} 分钟",
-                                    color = Color(0xFF2196F3),
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
+                            Spacer(modifier = Modifier.height(4.dp)) // 两行之间的间距
+                            Text(
+                                text = "${String.format("%.1f", currentRoute.distanceInMeters / 1000)} 公里 · ${currentRoute.estimatedDurationMinutes} 分钟",
+                                color = Color(0xFF2196F3),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.padding(start = 28.dp) // 20dp (图标) + 8dp (间距)
+                            )
                         }
                     }
                 }
@@ -651,20 +653,19 @@ fun EscapeNavigationCard(
                                     modifier = Modifier.size(14.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Column {
-                                    Text(
-                                        text = "震中距离",
-                                        color = Color.DarkGray,
-                                        fontSize = 11.sp
-                                    )
-                                    Text(
-                                        text = "${impact.distanceFromUser.toInt()} 公里",
-                                        color = Color.Black,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
+                                Text(
+                                    text = "震中距离",
+                                    color = Color.DarkGray,
+                                    fontSize = 11.sp
+                                )
                             }
+                            Text(
+                                text = "${impact.distanceFromUser.toInt()} 公里",
+                                color = Color.Black,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.padding(start = 18.dp) // 14dp icon + 4dp spacer
+                            )
                         }
                         
                         // 预估到达时间（带倒计时）
@@ -677,67 +678,65 @@ fun EscapeNavigationCard(
                                     modifier = Modifier.size(14.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Column {
-                                    Text(
-                                        text = "预计到达",
-                                        color = Color.DarkGray,
-                                        fontSize = 11.sp
-                                    )
+                                Text(
+                                    text = "预计到达",
+                                    color = Color.DarkGray,
+                                    fontSize = 11.sp
+                                )
+                            }
                                     
-                                    // 倒计时逻辑
-                                    var remainingSeconds by remember { mutableStateOf(impact.secondsUntilArrival) }
-                                    
-                                    LaunchedEffect(impact.estimatedArrivalTime) {
-                                        while (remainingSeconds > 0) {
-                                            delay(1000)
-                                            val currentTime = System.currentTimeMillis()
-                                            val newRemainingSeconds = ((impact.estimatedArrivalTime - currentTime) / 1000).toInt()
-                                            remainingSeconds = maxOf(0, newRemainingSeconds)
-                                        }
-                                    }
-                                    
-                                    Text(
-                                        text = if (remainingSeconds > 0) "${remainingSeconds} 秒后" else "已到达",
-                                        color = Color(0xFFD32F2F),
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
+                            // 倒计时逻辑
+                            var remainingSeconds by remember { mutableStateOf(impact.secondsUntilArrival) }
+                            
+                            LaunchedEffect(impact.estimatedArrivalTime) {
+                                while (remainingSeconds > 0) {
+                                    delay(1000)
+                                    val currentTime = System.currentTimeMillis()
+                                    val newRemainingSeconds = ((impact.estimatedArrivalTime - currentTime) / 1000).toInt()
+                                    remainingSeconds = maxOf(0, newRemainingSeconds)
                                 }
                             }
+                            
+                            Text(
+                                text = if (remainingSeconds > 0) "${remainingSeconds} 秒后" else "已到达",
+                                color = Color(0xFFD32F2F),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(start = 18.dp) // 14dp icon + 4dp spacer
+                            )
                         }
                         
                         // 预估震感
                         Column(modifier = Modifier.weight(1f)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    imageVector = Icons.Default.Warning,
+                                    imageVector = Icons.Default.WbTwilight,
                                     contentDescription = null,
                                     tint = Color.DarkGray,
                                     modifier = Modifier.size(14.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Column {
-                                    Text(
-                                        text = "预估震感",
-                                        color = Color.DarkGray,
-                                        fontSize = 11.sp
-                                    )
-                                    Text(
-                                        text = when (impact.intensity.level) {
-                                            in 0..2 -> "弱"
-                                            in 3..4 -> "中"
-                                            else -> "强"
-                                        },
-                                        color = when (impact.intensity.level) {
-                                            in 0..2 -> Color(0xFF4CAF50)
-                                            in 3..4 -> Color(0xFFFF9800)
-                                            else -> Color(0xFFD32F2F)
-                                        },
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
+                                Text(
+                                    text = "预估震感",
+                                    color = Color.DarkGray,
+                                    fontSize = 11.sp
+                                )
                             }
+                            Text(
+                                text = when (impact.intensity.level) {
+                                    in 0..2 -> "弱，请勿慌张"
+                                    in 3..4 -> "中，请尽快逃生"
+                                    else -> "强，请尽快自救"
+                                },
+                                color = when (impact.intensity.level) {
+                                    in 0..2 -> Color(0xFF4CAF50)
+                                    in 3..4 -> Color(0xFFFF9800)
+                                    else -> Color(0xFFD32F2F)
+                                },
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(start = 18.dp) // 14dp icon + 4dp spacer
+                            )
                         }
                     }
                 }

@@ -80,7 +80,7 @@ fun EarthquakeList(
         modifier = modifier
             .fillMaxSize()
             .background(BackgroundPrimary)
-            .padding(bottom = 72.dp)
+            .padding(bottom = 52.dp)
     ) {
         // Header
         Row(
@@ -464,28 +464,28 @@ private fun getImpactColor(impact: EarthquakeImpact): Color {
 // 获取震级颜色 - 新版
 private fun getMagnitudeColorNew(magnitude: Double): Color {
     return when {
-        magnitude >= 6.0 -> Color(0xFFD32F2F) // 红色
-        magnitude >= 5.0 -> Color(0xFFFF9800) // 橙色
+        magnitude >= 6.0 -> Color(0xFFF4606C) // 红色
+        magnitude >= 5.0 -> Color(0xFFFFA500) // 橙色
         magnitude >= 4.0 -> Color(0xFFFFC107) // 黄色
-        else -> Color(0xFF4CAF50) // 绿色
+        else -> Color(0xFF19CAAD) // 绿色
     }
 }
 
 // 获取地震烈度文本
 private fun getIntensityText(intensity: ShakingIntensity): String {
     return when (intensity.level) {
-        in 0..2 -> "弱"
-        in 3..4 -> "中"
-        else -> "强"
+        in 0..2 -> "弱，请勿慌张"
+        in 3..4 -> "中，请尽快逃生"
+        else -> "强，请尽快自救"
     }
 }
 
 // 获取地震烈度颜色 - 新版
 private fun getIntensityColorNew(intensity: ShakingIntensity): Color {
     return when (intensity.level) {
-        in 0..2 -> Color(0xFF4CAF50) // 绿色
-        in 3..4 -> Color(0xFFFF9800) // 橙色
-        else -> Color(0xFFD32F2F) // 红色
+        in 0..2 -> Color(0xFF19CAAD) // 绿色
+        in 3..4 -> Color(0xFFFFA500) // 橙色
+        else -> Color(0xFFF4606C) // 红色
     }
 }
 

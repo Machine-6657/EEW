@@ -34,6 +34,9 @@ import com.example.eewapp.data.MeasurementUnit
 import com.example.eewapp.viewmodel.SettingsViewModel
 import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.foundation.layout.padding
+import android.app.Activity
+import androidx.compose.ui.res.stringResource
+import com.example.eewapp.R
 
 // 定义颜色常量
 private val BlueEmphasis = Color(0xFF1E90FF) // 蓝色强调色
@@ -51,6 +54,7 @@ fun SettingsScreen(
     )
 ) {
     val settings by viewModel.settingsState.collectAsState()
+    val context = LocalContext.current
     
     // 对话框状态
     var showMagnitudeDialog by remember { mutableStateOf(false) }
@@ -73,14 +77,14 @@ fun SettingsScreen(
                 .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 56.dp)
         ) {
             // 通知设置标题
-            SectionTitle(text = "通知设置")
+            SectionTitle(text = stringResource(id = R.string.settings_notification_settings))
             
             // 地震预警通知设置
             NotificationSettingItem(
                 icon = Icons.Filled.Notifications,
                 iconTint = BlueEmphasis,
-                title = "启用地震预警",
-                description = "接收地震预警通知",
+                title = stringResource(id = R.string.settings_enable_earthquake_warning),
+                description = stringResource(id = R.string.settings_enable_earthquake_warning_description),
                 checked = settings.notificationSettings.earthquakeWarningEnabled,
                 onCheckedChange = { viewModel.updateEarthquakeWarningEnabled(it) }
             )
@@ -89,8 +93,8 @@ fun SettingsScreen(
             NotificationSettingItem(
                 icon = Icons.Outlined.VolumeUp,
                 iconTint = BlueEmphasis,
-                title = "声音提醒",
-                description = "播放警报声音",
+                title = stringResource(id = R.string.settings_sound_alert),
+                description = stringResource(id = R.string.settings_sound_alert_description),
                 checked = settings.notificationSettings.soundAlertEnabled,
                 onCheckedChange = { viewModel.updateSoundAlertEnabled(it) }
             )
@@ -99,21 +103,21 @@ fun SettingsScreen(
             NotificationSettingItem(
                 icon = Icons.Outlined.Vibration,
                 iconTint = BlueEmphasis,
-                title = "震动提醒",
-                description = "启用设备震动",
+                title = stringResource(id = R.string.settings_vibration_alert),
+                description = stringResource(id = R.string.settings_vibration_alert_description),
                 checked = settings.notificationSettings.vibrationEnabled,
                 onCheckedChange = { viewModel.updateVibrationEnabled(it) }
             )
             
             // 过滤设置标题
-            SectionTitle(text = "过滤设置")
+            SectionTitle(text = stringResource(id = R.string.settings_filter_settings))
             
             // 最小震级设置
             SettingItem(
                 icon = Icons.Filled.Warning,
                 iconTint = BlueEmphasis,
-                title = "最小震级",
-                value = "${settings.filterSettings.minMagnitude} 级以上地震将触发警报",
+                title = stringResource(id = R.string.settings_min_magnitude),
+                value = stringResource(id = R.string.settings_min_magnitude_description_template, settings.filterSettings.minMagnitude),
                 onClick = { showMagnitudeDialog = true }
             )
             
@@ -121,20 +125,20 @@ fun SettingsScreen(
             SettingItem(
                 icon = Icons.Outlined.LocationOn,
                 iconTint = BlueEmphasis,
-                title = "监测半径",
-                value = "${settings.filterSettings.monitoringRadiusKm} 公里范围内的地震将被监测",
+                title = stringResource(id = R.string.settings_monitoring_radius),
+                value = stringResource(id = R.string.settings_monitoring_radius_description_template, settings.filterSettings.monitoringRadiusKm),
                 onClick = { showRadiusDialog = true }
             )
             
             // 应用设置标题
-            SectionTitle(text = "应用设置")
+            SectionTitle(text = stringResource(id = R.string.settings_app_settings))
             
             // 语言设置
             SettingItem(
                 icon = Icons.Filled.Language,
                 iconTint = BlueEmphasis,
-                title = "语言",
-                value = settings.appPreferences.language.displayName,
+                title = stringResource(id = R.string.settings_language),
+                value = if (settings.appPreferences.language == Language.CHINESE) stringResource(R.string.language_chinese) else stringResource(R.string.language_english),
                 onClick = { showLanguageDialog = true }
             )
             
@@ -142,8 +146,8 @@ fun SettingsScreen(
             SettingItem(
                 icon = Icons.Outlined.Settings,
                 iconTint = BlueEmphasis,
-                title = "单位",
-                value = settings.appPreferences.unit.displayName,
+                title = stringResource(id = R.string.settings_unit),
+                value = stringResource(id = settings.appPreferences.unit.displayResId),
                 onClick = { showUnitDialog = true }
             )
             
@@ -160,7 +164,7 @@ fun SettingsScreen(
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text(
-                    text = "重置所有设置",
+                    text = stringResource(id = R.string.settings_reset_all_settings),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -200,6 +204,8 @@ fun SettingsScreen(
             onSelect = { language ->
                 viewModel.updateLanguage(language)
                 showLanguageDialog = false
+                val activity = context as? Activity
+                activity?.recreate()
             }
         )
     }
@@ -220,8 +226,8 @@ fun SettingsScreen(
     if (showResetDialog) {
         AlertDialog(
             onDismissRequest = { showResetDialog = false },
-            title = { Text("重置设置", color = TextPrimary) },
-            text = { Text("确定要将所有设置恢复为默认值吗？", color = TextSecondary) },
+            title = { Text(stringResource(id = R.string.settings_reset_dialog_title), color = TextPrimary) },
+            text = { Text(stringResource(id = R.string.settings_reset_dialog_message), color = TextSecondary) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -230,7 +236,7 @@ fun SettingsScreen(
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = BlueEmphasis)
                 ) {
-                    Text("确定")
+                    Text(stringResource(id = R.string.button_confirm))
                 }
             },
             dismissButton = {
@@ -238,7 +244,7 @@ fun SettingsScreen(
                     onClick = { showResetDialog = false },
                     colors = ButtonDefaults.textButtonColors(contentColor = TextPrimary)
                 ) {
-                    Text("取消")
+                    Text(stringResource(id = R.string.button_cancel))
                 }
             },
             containerColor = Color.White
@@ -281,51 +287,51 @@ fun SettingItem(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 16.dp, horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // 图标
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(iconTint.copy(alpha = 0.1f)),
+            contentAlignment = Alignment.Center
         ) {
-            // 图标
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(iconTint.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-            
-            // 文本内容
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 16.dp)
-            ) {
-                Text(
-                    text = title,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = TextPrimary
-                )
-                
-                Text(
-                    text = value,
-                    fontSize = 14.sp,
-                    color = TextSecondary,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-            }
-            
-            // 右箭头
             Icon(
-                imageVector = Icons.Filled.KeyboardArrowRight,
+                imageVector = icon,
                 contentDescription = null,
-                tint = TextSecondary
+                tint = iconTint,
+                modifier = Modifier.size(24.dp)
             )
+        }
+        
+        // 文本内容
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 16.dp)
+        ) {
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = TextPrimary
+            )
+            
+            Text(
+                text = value,
+                fontSize = 14.sp,
+                color = TextSecondary,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
+        
+        // 右箭头
+        Icon(
+            imageVector = Icons.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = TextSecondary
+        )
         }
     }
     
@@ -350,61 +356,61 @@ fun NotificationSettingItem(
         elevation = CardDefaults.cardElevation(
             defaultElevation = 2.dp
         )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
                 .padding(vertical = 16.dp, horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // 图标
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(iconTint.copy(alpha = 0.1f)),
+            contentAlignment = Alignment.Center
         ) {
-            // 图标
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(iconTint.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-            
-            // 文本内容
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 16.dp)
-            ) {
-                Text(
-                    text = title,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = TextPrimary
-                )
-                
-                Text(
-                    text = description,
-                    fontSize = 14.sp,
-                    color = TextSecondary,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-            }
-            
-            // 开关
-            Switch(
-                checked = checked,
-                onCheckedChange = onCheckedChange,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color.White,
-                    checkedTrackColor = BlueEmphasis,
-                    uncheckedThumbColor = Color.White,
-                    uncheckedTrackColor = TextSecondary.copy(alpha = 0.5f)
-                )
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(24.dp)
             )
+        }
+        
+        // 文本内容
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 16.dp)
+        ) {
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = TextPrimary
+            )
+            
+            Text(
+                text = description,
+                fontSize = 14.sp,
+                color = TextSecondary,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
+        
+        // 开关
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                    checkedTrackColor = BlueEmphasis,
+                uncheckedThumbColor = Color.White,
+                uncheckedTrackColor = TextSecondary.copy(alpha = 0.5f)
+            )
+        )
         }
     }
     
@@ -432,7 +438,7 @@ fun MagnitudeDialog(
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text(
-                    text = "选择最小震级",
+                    text = stringResource(id = R.string.settings_select_min_magnitude_title),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextPrimary
@@ -460,7 +466,7 @@ fun MagnitudeDialog(
                             )
                             
                             Text(
-                                text = "$magnitude 级",
+                                text = stringResource(id = R.string.settings_magnitude_level_template, magnitude),
                                 modifier = Modifier.padding(start = 8.dp),
                                 color = if (magnitude >= 5.0f) BlueEmphasis else TextPrimary
                             )
@@ -479,14 +485,14 @@ fun MagnitudeDialog(
                         onClick = onDismiss,
                         colors = ButtonDefaults.textButtonColors(contentColor = TextPrimary)
                     ) {
-                        Text("取消")
+                        Text(stringResource(id = R.string.button_cancel))
                     }
                     
                     TextButton(
                         onClick = { onConfirm(selectedMagnitude) },
                         colors = ButtonDefaults.textButtonColors(contentColor = BlueEmphasis)
                     ) {
-                        Text("确定")
+                        Text(stringResource(id = R.string.button_confirm))
                     }
                 }
             }
@@ -515,7 +521,7 @@ fun RadiusDialog(
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text(
-                    text = "选择监测半径",
+                    text = stringResource(id = R.string.settings_select_monitoring_radius_title),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextPrimary
@@ -543,7 +549,7 @@ fun RadiusDialog(
                             )
                             
                             Text(
-                                text = "$radius 公里",
+                                text = stringResource(id = R.string.settings_radius_km_template, radius),
                                 modifier = Modifier.padding(start = 8.dp),
                                 color = TextPrimary
                             )
@@ -562,14 +568,14 @@ fun RadiusDialog(
                         onClick = onDismiss,
                         colors = ButtonDefaults.textButtonColors(contentColor = TextPrimary)
                     ) {
-                        Text("取消")
+                        Text(stringResource(id = R.string.button_cancel))
                     }
                     
                     TextButton(
                         onClick = { onConfirm(selectedRadius) },
                         colors = ButtonDefaults.textButtonColors(contentColor = BlueEmphasis)
                     ) {
-                        Text("确定")
+                        Text(stringResource(id = R.string.button_confirm))
                     }
                 }
             }
@@ -597,7 +603,7 @@ fun LanguageDialog(
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text(
-                    text = "选择语言",
+                    text = stringResource(id = R.string.settings_language_dialog_title),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextPrimary
@@ -625,7 +631,7 @@ fun LanguageDialog(
                             )
                             
                             Text(
-                                text = language.displayName,
+                                text = if (language == Language.CHINESE) stringResource(R.string.language_chinese) else stringResource(R.string.language_english),
                                 modifier = Modifier.padding(start = 8.dp),
                                 color = TextPrimary
                             )
@@ -644,14 +650,14 @@ fun LanguageDialog(
                         onClick = onDismiss,
                         colors = ButtonDefaults.textButtonColors(contentColor = TextPrimary)
                     ) {
-                        Text("取消")
+                        Text(stringResource(id = R.string.button_cancel))
                     }
                     
                     TextButton(
                         onClick = { onSelect(selectedLanguage) },
                         colors = ButtonDefaults.textButtonColors(contentColor = BlueEmphasis)
                     ) {
-                        Text("确定")
+                        Text(stringResource(id = R.string.button_confirm))
                     }
                 }
             }
@@ -679,7 +685,7 @@ fun UnitDialog(
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text(
-                    text = "选择单位",
+                    text = stringResource(id = R.string.settings_select_unit_title),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextPrimary
@@ -707,7 +713,7 @@ fun UnitDialog(
                             )
                             
                             Text(
-                                text = unit.displayName,
+                                text = stringResource(id = unit.displayResId),
                                 modifier = Modifier.padding(start = 8.dp),
                                 color = TextPrimary
                             )
@@ -726,14 +732,14 @@ fun UnitDialog(
                         onClick = onDismiss,
                         colors = ButtonDefaults.textButtonColors(contentColor = TextPrimary)
                     ) {
-                        Text("取消")
+                        Text(stringResource(id = R.string.button_cancel))
                     }
                     
                     TextButton(
                         onClick = { onSelect(selectedUnit) },
                         colors = ButtonDefaults.textButtonColors(contentColor = BlueEmphasis)
                     ) {
-                        Text("确定")
+                        Text(stringResource(id = R.string.button_confirm))
                     }
                 }
             }

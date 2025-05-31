@@ -6,4 +6,43 @@
     <string name="amap_web_api_key">16efc0a1537f18feac7c4d6a5f45d5a7</string>
     <!-- 高德地图安全密钥 (暂时留空，因为EEW-地震预警显示为"—") -->
     <string name="amap_security_js_code"></string>
+
+    <!-- 语言设置 -->
+    <string name="settings_language_dialog_title">选择语言</string>
+    <string name="language_chinese">中文</string>
+    <string name="language_english">English</string>
+    <string name="button_confirm">确定</string>
+    <string name="button_cancel">取消</string>
+    <string name="settings_title">设置</string>
+    <string name="settings_language">语言</string>
+    <!-- 其他在SettingsScreen.kt中可能用到的字符串 -->
+    <string name="settings_notification_settings">通知设置</string>
+    <string name="settings_enable_earthquake_warning">启用地震预警</string>
+    <string name="settings_enable_earthquake_warning_description">接收地震预警通知</string>
+    <string name="settings_sound_alert">声音提醒</string>
+    <string name="settings_sound_alert_description">播放警报声音</string>
+    <string name="settings_vibration_alert">震动提醒</string>
+    <string name="settings_vibration_alert_description">启用设备震动</string>
+    <string name="settings_filter_settings">过滤设置</string>
+    <string name="settings_min_magnitude">最小震级</string>
+    <string name="settings_min_magnitude_description_template">"%1$.1f 级以上地震将触发警报"</string>
+    <string name="settings_monitoring_radius">监测半径</string>
+    <string name="settings_monitoring_radius_description_template">"%1$d 公里范围内的地震将被监测"</string>
+    <string name="settings_app_settings">应用设置</string>
+    <string name="settings_unit">单位</string>
+    <string name="settings_unit_metric">公制 (公里)</string>
+    <string name="settings_unit_imperial">英制 (英里)</string>
+    <string name="settings_reset_all_settings">重置所有设置</string>
+    <string name="settings_reset_dialog_title">重置设置</string>
+    <string name="settings_reset_dialog_message">确定要将所有设置恢复为默认值吗？</string>
+    <string name="settings_select_min_magnitude_title">选择最小震级</string>
+    <string name="settings_magnitude_level_template">"%1$.1f 级"</string>
+    <string name="settings_select_monitoring_radius_title">选择监测半径</string>
+    <string name="settings_radius_km_template">"%1$d 公里"</string>
+    <string name="settings_select_unit_title">选择单位</string>
+    <string name="earthquake_info_card_epicenter_location_label">震中位置</string>
+    <string name="bottom_nav_map">地图</string>
+    <string name="bottom_nav_earthquakes">地震</string>
+    <string name="bottom_nav_guide">指南</string>
+    <string name="bottom_nav_settings">设置</string>
 </resources>

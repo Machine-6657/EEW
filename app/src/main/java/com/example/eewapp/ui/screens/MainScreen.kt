@@ -41,6 +41,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -59,6 +60,8 @@ import com.example.eewapp.viewmodel.EscapeNavigationViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.ui.res.stringResource
+import com.example.eewapp.R
 
 /**
  * 应用主屏幕
@@ -85,7 +88,7 @@ fun MainScreen(viewModel: EarthquakeViewModel = androidx.lifecycle.viewmodel.com
     val escapeNavigationError by escapeNavigationViewModel.errorMessage.collectAsStateWithLifecycle()
     
     // UI状态
-    var selectedTab by remember { mutableIntStateOf(0) }
+    var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     val snackbarHostState = remember { SnackbarHostState() }
     
     // 位置权限
@@ -138,7 +141,8 @@ fun MainScreen(viewModel: EarthquakeViewModel = androidx.lifecycle.viewmodel.com
                 },
                 onEscapeNavigationDismiss = {
                     escapeNavigationViewModel.dismissEscapeNavigation()
-                }
+                },
+                onNavigateToGuide = { selectedTab = 2 }
             )
             1 -> ListTab(
                 earthquakes = earthquakes,
@@ -183,7 +187,7 @@ fun MainScreen(viewModel: EarthquakeViewModel = androidx.lifecycle.viewmodel.com
             hostState = snackbarHostState,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 80.dp) // 避免被底部导航栏遮挡
+                .padding(bottom = 60.dp) // 避免被底部导航栏遮挡
         )
     }
 }
@@ -198,7 +202,7 @@ fun BottomNavigation(
     modifier: Modifier = Modifier
 ) {
     // 定义颜色常量
-    val BlueEmphasis = Color(0xFF1E90FF) // 蓝色强调色
+    val BlueEmphasis = Color(0xFF5C86F0) // 新的蓝色强调色
     val TextPrimary = Color.Black // 主要文本颜色
     val TextSecondary = Color.DarkGray // 次要文本颜色
     val BackgroundPrimary = Color(0xFFF0F2F5) // 更明显的浅灰色背景
@@ -216,13 +220,13 @@ fun BottomNavigation(
             icon = { 
                 Icon(
                     Icons.Default.Public, 
-                    contentDescription = "地图",
+                    contentDescription = stringResource(id = R.string.bottom_nav_map),
                     modifier = Modifier.size(24.dp)
                 ) 
             },
             label = { 
                 Text(
-                    "地图",
+                    stringResource(id = R.string.bottom_nav_map),
                     fontSize = 12.sp,
                     modifier = Modifier.offset(y = (-7).dp)
                 ) 
@@ -241,13 +245,13 @@ fun BottomNavigation(
             icon = { 
                 Icon(
                     Icons.Default.Sort, 
-                    contentDescription = "地震",
+                    contentDescription = stringResource(id = R.string.bottom_nav_earthquakes),
                     modifier = Modifier.size(24.dp)
                 ) 
             },
             label = { 
                 Text(
-                    "地震",
+                    stringResource(id = R.string.bottom_nav_earthquakes),
                     fontSize = 12.sp,
                     modifier = Modifier.offset(y = (-7).dp)
                 ) 
@@ -266,13 +270,13 @@ fun BottomNavigation(
             icon = { 
                 Icon(
                     Icons.Default.ImportContacts, 
-                    contentDescription = "指南",
+                    contentDescription = stringResource(id = R.string.bottom_nav_guide),
                     modifier = Modifier.size(24.dp)
                 ) 
             },
             label = { 
                 Text(
-                    "指南",
+                    stringResource(id = R.string.bottom_nav_guide),
                     fontSize = 12.sp,
                     modifier = Modifier.offset(y = (-7).dp)
                 ) 
@@ -291,13 +295,13 @@ fun BottomNavigation(
             icon = { 
                 Icon(
                     Icons.Default.Settings, 
-                    contentDescription = "设置",
+                    contentDescription = stringResource(id = R.string.bottom_nav_settings),
                     modifier = Modifier.size(24.dp)
                 ) 
             },
             label = { 
                 Text(
-                    "设置",
+                    stringResource(id = R.string.bottom_nav_settings),
                     fontSize = 12.sp,
                     modifier = Modifier.offset(y = (-7).dp)
                 ) 
@@ -327,7 +331,8 @@ fun MapTab(
     onSafetyLocationSelected: (com.example.eewapp.data.SafetyLocation) -> Unit,
     onNavigationStart: (com.example.eewapp.data.UserLocation, com.example.eewapp.data.SafetyLocation) -> Unit,
     onNavigationStop: () -> Unit,
-    onEscapeNavigationDismiss: () -> Unit
+    onEscapeNavigationDismiss: () -> Unit,
+    onNavigateToGuide: () -> Unit
 ) {
     Log.d("MapTab", "Rendering MapTab")
     Log.d("MapTab", "UserLocation: $userLocation")
@@ -345,6 +350,7 @@ fun MapTab(
             onNavigationStart = onNavigationStart,
             onNavigationStop = onNavigationStop,
             onEscapeNavigationDismiss = onEscapeNavigationDismiss,
+            onNavigateToGuide = onNavigateToGuide,
             modifier = Modifier.fillMaxSize()
         )
     }
@@ -384,7 +390,7 @@ fun PermissionRequest(
     modifier: Modifier = Modifier
 ) {
     // 定义颜色常量
-    val BlueEmphasis = Color(0xFF1E90FF) // 蓝色强调色
+    val BlueEmphasis = Color(0xFF5C86F0) // 新的蓝色强调色
     val TextPrimary = Color.Black // 主要文本颜色
     val TextSecondary = Color.DarkGray // 次要文本颜色
     val BackgroundPrimary = Color(0xFFF0F2F5) // 更明显的浅灰色背景

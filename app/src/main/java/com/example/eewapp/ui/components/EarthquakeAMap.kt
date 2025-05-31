@@ -62,6 +62,7 @@ import kotlinx.coroutines.withContext
 import com.example.eewapp.ui.components.switchMapTo3D
 import com.example.eewapp.ui.components.switchMapTo2D
 import com.example.eewapp.ui.components.createLatLng
+import androidx.compose.material.icons.filled.Call // 新增导入
 
 /**
  * 使用高德地图的地震预警地图组件
@@ -80,8 +81,11 @@ fun EarthquakeAMap(
     onNavigationStart: ((UserLocation, SafetyLocation) -> Unit)? = null,
     onNavigationStop: (() -> Unit)? = null,
     onEscapeNavigationDismiss: (() -> Unit)? = null,
+    onNavigateToGuide: () -> Unit, // 新增回调参数
     modifier: Modifier = Modifier
 ) {
+    var showEmergencyContactDialog by remember { mutableStateOf(false) } // 新增状态，用于控制对话框显示
+
     // 添加调试日志
     Log.d("EarthquakeAMap", "UserLocation: $userLocation")
     Log.d("EarthquakeAMap", "Earthquakes count: ${earthquakes.size}")
@@ -639,6 +643,39 @@ fun EarthquakeAMap(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally // 水平居中图标和文本
             ) {
+                // 新增：紧急联系按钮
+                AnimatedVisibility(visible = selectedImpact != null) {
+                    Surface(
+                        modifier = Modifier
+                            .size(width = 56.dp, height = 56.dp)
+                            .shadow(4.dp, RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { showEmergencyContactDialog = true },
+                        color = ComposeColor.White,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                            modifier = Modifier.padding(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Call,
+                                contentDescription = "紧急联系",
+                                tint = ComposeColor(0xFFD32F2F), // 红色图标
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.height(1.5.dp))
+                            Text(
+                                text = "紧急",
+                                color = ComposeColor(0xFFD32F2F), // 红色文字
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
                 // 震中按钮 (白底蓝字)
                 Surface(
                     modifier = Modifier
@@ -934,23 +971,46 @@ fun EarthquakeAMap(
             exit = slideOutVertically(targetOffsetY = { it }),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 80.dp, start = 16.dp, end = 16.dp) // 为底部导航栏留出空间
+                .padding(bottom = 160.dp, start = 16.dp, end = 16.dp) // 为底部导航栏和浮动按钮留出空间
         ) {
              selectedImpact?.let { impact ->
                 EarthquakeInfoCard(
                      earthquake = impact.earthquake,
                      impact = impact,
-                     onClose = {
-                                   localSelectedEarthquake = null
-                        selectedImpact = null
+                         onClose = {
+                              localSelectedEarthquake = null
+                                   selectedImpact = null
                     },
                     onEscapeNavigation = if (impact.earthquake.id.startsWith("simulated-") && userLocation != null && onEscapeNavigationStart != null) {
                         { onEscapeNavigationStart.invoke(userLocation) }
-                    } else null
+                    } else null,
+                    onNavigateToGuide = onNavigateToGuide // 传递回调
                  )
              }
          }
-        
+
+        // 新增：用于显示浮动操作按钮的 AnimatedVisibility
+        AnimatedVisibility(
+            visible = selectedImpact != null && !escapeNavigationState.isNavigating,
+            enter = slideInVertically(initialOffsetY = { it }),
+            exit = slideOutVertically(targetOffsetY = { it }),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(start = 16.dp, end = 16.dp, bottom = 60.dp) // 放置在卡片下方，并为导航栏留出空间
+        ) {
+             selectedImpact?.let { impact ->
+                FloatingActionButtons(
+                     earthquake = impact.earthquake,
+                    userLocation = userLocation, // 传递 userLocation
+                    onEscapeNavigation = if (impact.earthquake.id.startsWith("simulated-") && userLocation != null && onEscapeNavigationStart != null) {
+                        { onEscapeNavigationStart.invoke(userLocation) }
+                    } else null,
+                    onNavigateToGuide = onNavigateToGuide,
+                    modifier = Modifier.fillMaxWidth() // 让按钮组占据全部宽度
+                )
+            }
+        }
+
         // 安全地点标记（在逃生导航激活时显示）
         if (escapeNavigationState.isActive) { // 首先检查 escapeNavigationState.isActive
             val currentAMapInstance = aMap // 将委托属性的值赋给局部变量
@@ -991,8 +1051,8 @@ fun EarthquakeAMap(
                         Log.i("EarthquakeAMap", "[RoutePolyline CB] activeRoutePolyline WILL BE updated to: $polyline")
                         activeRoutePolyline = polyline
                     } // 回调以更新Polyline对象
-                )
-            } else {
+                     )
+                 } else {
                 Log.w("EarthquakeAMap", "SafetyLocationMarkers 未调用，因为 aMap 实例为 null")
             }
         }
@@ -1100,6 +1160,12 @@ fun EarthquakeAMap(
         }
     }
     // --- END: New Parent-level Cleanup Logic ---
+
+    // 在 EarthquakeAMap 的主 Box 的末尾添加对话框的调用
+    EmergencyContactDialog(
+        isVisible = showEmergencyContactDialog,
+        onDismiss = { showEmergencyContactDialog = false }
+    )
 }
 
 // 辅助函数：移动相机到指定位置
@@ -1595,3 +1661,84 @@ private fun SafetyLocationMarkers(
         }
     }
 } 
+
+// 新增 Composable 函数用于浮动按钮
+@Composable
+private fun FloatingActionButtons(
+    earthquake: Earthquake,
+    userLocation: UserLocation?, // 添加 userLocation 参数，因为 onEscapeNavigation 可能需要它
+    onEscapeNavigation: (() -> Unit)?,
+    onNavigateToGuide: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (earthquake.id.startsWith("simulated-")) {
+        Column(modifier = modifier.fillMaxWidth()) { // 让按钮占据全部宽度
+            Spacer(modifier = Modifier.height(2.dp)) // 这个Spacer可能不再需要，或者需要调整
+            
+            if (onEscapeNavigation != null) {
+                Button(
+                    onClick = onEscapeNavigation,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = ComposeColor(0xFF2196F3),
+                        contentColor = ComposeColor.White
+                    ),
+                    shape = RoundedCornerShape(8.dp),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+Icon(
+                            imageVector = Icons.Default.DirectionsRun,
+                            contentDescription = "紧急逃生",
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "逃生导航",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+  
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+            
+            Button(
+                onClick = onNavigateToGuide,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = ComposeColor(0xFF4CAF50),
+                    contentColor = ComposeColor.White
+                ),
+                shape = RoundedCornerShape(8.dp),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MenuBook,
+                        contentDescription = "查看指南",
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "查看地震中应对指南",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    }
+} 
+

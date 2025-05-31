@@ -1,0 +1,48 @@
+<resources>
+    <string name="app_name">EEWapp</string>
+    <!-- AMap API Key - Android Platform (for Map SDK) -->
+    <string name="amap_key">8fb10030cb8075e86a863ff7bb66b7c8</string>
+    <!-- AMap Web API Key - EEW-EarthquakeWarning (for Route Planning API) -->
+    <string name="amap_web_api_key">16efc0a1537f18feac7c4d6a5f45d5a7</string>
+    <!-- AMap Security JS Code (leave blank for now, as EEW-EarthquakeWarning shows "—") -->
+    <string name="amap_security_js_code"></string>
+
+    <!-- Language Settings -->
+    <string name="settings_language_dialog_title">Select Language</string>
+    <string name="language_chinese">中文</string>
+    <string name="language_english">English</string>
+    <string name="button_confirm">Confirm</string>
+    <string name="button_cancel">Cancel</string>
+    <string name="settings_title">Settings</string>
+    <string name="settings_language">Language</string>
+    <!-- Other strings from SettingsScreen.kt -->
+    <string name="settings_notification_settings">Notification Settings</string>
+    <string name="settings_enable_earthquake_warning">Enable Earthquake Warning</string>
+    <string name="settings_enable_earthquake_warning_description">Receive earthquake warning notifications</string>
+    <string name="settings_sound_alert">Sound Alert</string>
+    <string name="settings_sound_alert_description">Play alert sound</string>
+    <string name="settings_vibration_alert">Vibration Alert</string>
+    <string name="settings_vibration_alert_description">Enable device vibration</string>
+    <string name="settings_filter_settings">Filter Settings</string>
+    <string name="settings_min_magnitude">Minimum Magnitude</string>
+    <string name="settings_min_magnitude_description_template">"Alerts for earthquakes magnitude %1$.1f and above"</string>
+    <string name="settings_monitoring_radius">Monitoring Radius</string>
+    <string name="settings_monitoring_radius_description_template">"Monitor earthquakes within %1$d km radius"</string>
+    <string name="settings_app_settings">App Settings</string>
+    <string name="settings_unit">Unit</string>
+    <string name="settings_unit_metric">Metric (km)</string>
+    <string name="settings_unit_imperial">Imperial (miles)</string>
+    <string name="settings_reset_all_settings">Reset All Settings</string>
+    <string name="settings_reset_dialog_title">Reset Settings</string>
+    <string name="settings_reset_dialog_message">Are you sure you want to reset all settings to their default values?</string>
+    <string name="settings_select_min_magnitude_title">Select Minimum Magnitude</string>
+    <string name="settings_magnitude_level_template">"Magnitude %1$.1f"</string>
+    <string name="settings_select_monitoring_radius_title">Select Monitoring Radius</string>
+    <string name="settings_radius_km_template">"%1$d km"</string>
+    <string name="settings_select_unit_title">Select Unit</string>
+    <string name="earthquake_info_card_epicenter_location_label">Epicenter</string>
+    <string name="bottom_nav_map">Map</string>
+    <string name="bottom_nav_earthquakes">Earthquakes</string>
+    <string name="bottom_nav_guide">Guide</string>
+    <string name="bottom_nav_settings">Settings</string>
+</resources> 

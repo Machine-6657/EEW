@@ -65,8 +65,8 @@ fun EmergencyContactDialog(
         listOf(
             EmergencyContact(
                 id = "fire_rescue",
-                name = "杭州人防指挥信息保障中心",
-                phoneNumber = "0571-87265799",
+                name = "成都市应急管理局",
+                phoneNumber = "028-6188-5777",
                 type = EmergencyContactType.FIRE_RESCUE
             ),
             EmergencyContact(

@@ -81,6 +81,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.res.stringResource
 import com.example.eewapp.R
+import androidx.compose.runtime.remember
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 
 // 定义颜色常量
 private val RedEmphasis = Color(0xFFD32F2F) // 红色强调色
@@ -104,14 +114,12 @@ fun EarthquakeInfoCard(
     onEscapeNavigation: (() -> Unit)? = null,
     onNavigateToGuide: () -> Unit
 ) {
-    // val backgroundColor = Color.White // 不再需要固定的白色背景
-    
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.Transparent, // 1. 使卡片容器背景透明
-            contentColor = TextPrimary // 保持默认内容颜色
+            containerColor = Color.Transparent,
+            contentColor = TextPrimary
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         border = androidx.compose.foundation.BorderStroke(
@@ -119,225 +127,301 @@ fun EarthquakeInfoCard(
             color = Color.LightGray.copy(alpha = 0.3f)
         )
     ) {
-        var remainingSeconds by remember { mutableStateOf(impact.secondsUntilArrival) }
-        LaunchedEffect(impact.estimatedArrivalTime) {
-            while (remainingSeconds > 0) {
-                delay(1000)
-                val currentTime = System.currentTimeMillis()
-                val newRemainingSeconds = ((impact.estimatedArrivalTime - currentTime) / 1000).toInt()
-                remainingSeconds = maxOf(0, newRemainingSeconds)
+        val baseColorStops = remember(earthquake.magnitude) {
+            val topColor = getSoftMagnitudeColor(earthquake.magnitude)
+            val bottomColor = lerp(topColor, Color.White, 0.8f) // 改成topColor的浅色版
+            val numBands = 10
+
+            val colorsForBands = List(numBands) { i ->
+                lerp(topColor, bottomColor, i / (numBands - 1).toFloat())
             }
+
+            val colorStopsList = mutableListOf<Pair<Float, Color>>()
+            val fractionStep = 1.0f / numBands
+            for (i in 0 until numBands) {
+                val bandColor = colorsForBands[i]
+                colorStopsList.add(Pair(i * fractionStep, bandColor))
+                colorStopsList.add(Pair(((i + 1) * fractionStep).coerceAtMost(1.0f), bandColor))
+            }
+            colorStopsList.toTypedArray()
         }
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                // 2. 为这个Column应用从上到下的渐变背景
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            getSoftMagnitudeColor(earthquake.magnitude), // 改为使用柔和颜色
-                            Color.White                         // 底部：白色
-                        )
-                    )
+        val infiniteTransition = rememberInfiniteTransition(label = "glossEffect")
+        val animatedGlossPosition by infiniteTransition.animateFloat(
+            initialValue = -0.5f, // Start off-screen to the "left/top"
+            targetValue = 1.5f,   // End off-screen to the "right/bottom"
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 3500, easing = LinearEasing), // Slower animation
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "glossPosition"
+        )
+
+        Box(modifier = Modifier.fillMaxWidth()) { // Container for layered drawing and content
+            Canvas(modifier = Modifier.matchParentSize()) {
+                val componentWidth = size.width
+                val componentHeight = size.height
+
+                // 1. Draw Base Striped Background
+                val baseBrush = Brush.linearGradient(
+                    colorStops = *baseColorStops, // Apply spread operator
+                    start = Offset.Zero,
+                    end = Offset(componentWidth, componentHeight) // Use actual size
                 )
-        ) {
-            // 横幅 Row
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // 左侧和中间合并：预警震级 和 预计到达时间
-                Column(
-                    modifier = Modifier
-                        .padding(end = 8.dp),
-                    horizontalAlignment = Alignment.Start,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Row( // 震级和到达时间在同一行
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Start
-                    ) {
-                        Text(
-                            text = "${String.format("%.1f", earthquake.magnitude)}级",
-                            color = getMagnitudeColor(earthquake.magnitude),
-                            fontSize = 25.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.width(2.dp))
-                        if (remainingSeconds > 0) {
-                            Text(
-                                text = "地震波于",
-                                color = Color.White,
-                                fontSize = 25.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                            Text(
-                                text = "${remainingSeconds}",
-                                color = getMagnitudeColor(earthquake.magnitude),
-                                fontSize = 25.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                            Text(
-                                text = "秒后到达",
-                                color = Color.White,
-                                fontSize = 25.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        } else {
-                            Text(
-                                text = "已到达",
-                                color = Color.White, // "已到达" 也保持白色
-                                fontSize = 25.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-                }
+                drawRect(brush = baseBrush)
+
+                // 2. Draw Animated Gloss Overlay
+                val glossColor = Color.White.copy(alpha = 0.15f) // Gloss color and intensity
+                val bandCenter = animatedGlossPosition       // Current position of the gloss band (-0.5f to 1.5f)
+                val luminousBandHalfWidth = 0.03f            // Half width of the brightest part of the gloss
+                val fadeEffectHalfWidth = 0.05f              // Half width of the fade area on each side
+
+                // Calculate key points for the gloss band's color stops
+                val p0 = (bandCenter - luminousBandHalfWidth - fadeEffectHalfWidth) // Start of fade-in
+                val p1 = (bandCenter - luminousBandHalfWidth)                       // Start of luminous band
+                val p2 = (bandCenter + luminousBandHalfWidth)                       // End of luminous band
+                val p3 = (bandCenter + luminousBandHalfWidth + fadeEffectHalfWidth) // End of fade-out
+
+                val glossStops = mutableListOf<Pair<Float, Color>>()
+                glossStops.add(0f to Color.Transparent) // Ensure gradient starts transparent
+
+                // Add gloss band points if they are within the 0-1 range
+                if (p0 > 0f && p0 < 1f) glossStops.add(p0 to Color.Transparent)
+                if (p1 > 0f && p1 < 1f) glossStops.add(p1 to glossColor)
+                if (p2 > 0f && p2 < 1f) glossStops.add(p2 to glossColor)
+                if (p3 > 0f && p3 < 1f) glossStops.add(p3 to Color.Transparent)
+
+                glossStops.add(1f to Color.Transparent) // Ensure gradient ends transparent
+
+                // Sort stops by position and remove duplicates, ensure at least two points for a valid gradient
+                val finalGlossStops = glossStops.sortedBy { it.first }
+                    .distinct()
+                    .toTypedArray()
+                    .let { if (it.size < 2) arrayOf(0f to Color.Transparent, 1f to Color.Transparent) else it }
+
+                val glossBrush = Brush.linearGradient(
+                    colorStops = *finalGlossStops, // Apply spread operator
+                    start = Offset.Zero,
+                    end = Offset(componentWidth, componentHeight) // Gloss sweeps along the same diagonal
+                )
+                drawRect(brush = glossBrush)
             }
 
-            // 新增一个Column来包裹横幅下方所有内容，并应用padding
+            // This Column now holds the original content and sits on top of the Canvas
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    // 修改padding，减小上内边距
-                    .padding(start = 10.dp, end = 10.dp, top = 2.dp, bottom = 10.dp)
+                // The .background() modifier that was here is now removed.
             ) {
-                Spacer(modifier = Modifier.height(0.dp)) // 这个Spacer保持0.dp
-
-                // 原"预计到达时间 | 预估震感"行，左侧修改为"震中位置（地名）"
+            var remainingSeconds by remember { mutableStateOf(impact.secondsUntilArrival) }
+            LaunchedEffect(impact.estimatedArrivalTime) {
+                while (remainingSeconds > 0) {
+                    delay(1000)
+                    val currentTime = System.currentTimeMillis()
+                    val newRemainingSeconds = ((impact.estimatedArrivalTime - currentTime) / 1000).toInt()
+                    remainingSeconds = maxOf(0, newRemainingSeconds)
+                }
+            }
+            
+                // 横幅 Row (Banner Row)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 4.dp)
-                        .height(IntrinsicSize.Min), // 保持IntrinsicSize.Min
-                    verticalAlignment = Alignment.Top // 修改为 Alignment.Top
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // 左侧: 修改为显示"震中位置（地名）"
+                    // 左侧和中间合并：预警震级 和 预计到达时间
                     Column(
-                        modifier = Modifier.weight(1f),
-                        horizontalAlignment = Alignment.Start
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) { // Icon 和 Label 在一行，垂直居中
-                            Icon(
-                                imageVector = Icons.Filled.TravelExplore,
-                                contentDescription = stringResource(R.string.earthquake_info_card_epicenter_location_label),
-                                tint = TextPrimary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text( // Label: "震中位置"
-                                text = stringResource(R.string.earthquake_info_card_epicenter_location_label),
-                                color = TextSecondary,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(2.dp)) // 图标/标签行 与 下方地名之间的间距
-                        Text( // Detail: 地名，现在直接在 Column 下，与 Icon 左对齐
-                            text = earthquake.location.place,
-                            color = TextPrimary,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 2,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                        )
-                    }
-
-                    Divider(
-                        color = Color.LightGray.copy(alpha = 0.6f),
                         modifier = Modifier
-                            .fillMaxHeight(0.8f) // 保持分隔线高度
-                            .width(0.8.dp)
-                    )
-
-                    // 右侧: 预估震感 (保持不变)
-                    Column(
-                        modifier = Modifier.weight(1f).padding(start = 8.dp),
-                        horizontalAlignment = Alignment.Start
+                            .padding(end = 8.dp),
+                        horizontalAlignment = Alignment.Start,
+                        verticalArrangement = Arrangement.Center
                     ) {
-                         Row(verticalAlignment = Alignment.CenterVertically) { // Icon 和 Label 在一行，垂直居中
-                            Icon(
-                                imageVector = Icons.Outlined.Troubleshoot,
-                                contentDescription = "预估震感",
-                                tint = TextSecondary,
-                                modifier = Modifier.size(20.dp)
+                        Row( // 震级和到达时间在同一行
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Start
+                        ) {
+                            Text(
+                                text = "${String.format("%.1f", earthquake.magnitude)}级",
+                                color = getMagnitudeColor(earthquake.magnitude),
+                                fontSize = 26.7.sp,
+                                fontWeight = FontWeight.Bold
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text( // Label: "预估震感"
-                                text = "预估震感",
-                                color = TextPrimary, // 注意：之前这里的标签颜色是 TextPrimary，保持一致
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium
-                            )
+                            Spacer(modifier = Modifier.width(2.dp))
+                            if (remainingSeconds > 0) {
+                                Text(
+                                    text = "地震波于",
+                                    color = Color.White,
+                                    fontSize = 26.7.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "${remainingSeconds}",
+                                    color = getMagnitudeColor(earthquake.magnitude),
+                                    fontSize = 26.7.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "秒后到达",
+                                    color = Color.White,
+                                    fontSize = 26.7.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            } else {
+                                Text(
+                                    text = "已到达",
+                                    color = Color.White, // "已到达" 也保持白色
+                                    fontSize = 26.7.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         }
-                        Spacer(modifier = Modifier.height(2.dp)) // 图标/标签行 与 下方震感描述之间的间距
-                        Text( // Detail: 震感描述，现在直接在 Column 下，与 Icon 左对齐
-                            text = getIntensityText(impact.intensity),
-                            color = getIntensityColor(impact.intensity),
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                // 新增一个Column来包裹横幅下方所有内容，并应用padding
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        // 修改padding，减小上内边距
+                        .padding(start = 10.dp, end = 10.dp, top = 2.dp, bottom = 10.dp)
+                ) {
+                    Spacer(modifier = Modifier.height(0.dp)) // 这个Spacer保持0.dp
 
-                // 地震详细信息 (带竖直分隔线)
-                Column {
+                    // 原"预计到达时间 | 预估震感"行，左侧修改为"震中位置（地名）"
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(IntrinsicSize.Min),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Top
+                            .padding(vertical = 4.dp)
+                            .height(IntrinsicSize.Min), // 保持IntrinsicSize.Min
+                        verticalAlignment = Alignment.Top // 修改为 Alignment.Top
                     ) {
-                        InfoRow(
-                            label = "震中坐标",
-                            value = "东经${String.format("%.1f", earthquake.location.longitude)}° 北纬${String.format("%.1f", earthquake.location.latitude)}°",
-                            modifier = Modifier.weight(1f).padding(end = 8.dp)
-                        )
+                        // 左侧: 修改为显示"震中位置（地名）"
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.Start
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) { // Icon 和 Label 在一行，垂直居中
+                                Icon(
+                                    imageVector = Icons.Filled.TravelExplore,
+                                    contentDescription = stringResource(R.string.earthquake_info_card_epicenter_location_label),
+                                    tint = TextPrimary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text( // Label: "震中位置"
+                                    text = stringResource(R.string.earthquake_info_card_epicenter_location_label),
+                                    color = TextSecondary,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(2.dp)) // 图标/标签行 与 下方地名之间的间距
+                            Text( // Detail: 地名，现在直接在 Column 下，与 Icon 左对齐
+                                text = earthquake.location.place,
+                                color = TextPrimary,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 2,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
+                        }
+
                         Divider(
-                            color = Color.LightGray.copy(alpha = 0.6f),
+                            color = Color.Gray.copy(alpha = 1.0f),
                             modifier = Modifier
-                                .fillMaxHeight(0.9f)
+                                .fillMaxHeight(0.9f) // 从 0.8f 改为 0.9f
                                 .width(0.8.dp)
                         )
-                        InfoRow(
-                            label = "震中距离",
-                            value = "${impact.distanceFromUser.toInt()} 公里",
-                            modifier = Modifier.weight(1f).padding(start = 8.dp)
-                        )
+
+                        // 右侧: 预估震感 (保持不变)
+                        Column(
+                            modifier = Modifier.weight(1f).padding(start = 8.dp),
+                            horizontalAlignment = Alignment.Start
+                        ) {
+                             Row(verticalAlignment = Alignment.CenterVertically) { // Icon 和 Label 在一行，垂直居中
+                                Icon(
+                                    imageVector = Icons.Outlined.Troubleshoot,
+                                    contentDescription = "预估震感",
+                                    tint = TextSecondary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text( // Label: "预估震感"
+                                    text = "预估震感",
+                                    color = TextPrimary, // 注意：之前这里的标签颜色是 TextPrimary，保持一致
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(2.dp)) // 图标/标签行 与 下方震感描述之间的间距
+                            Text( // Detail: 震感描述，现在直接在 Column 下，与 Icon 左对齐
+                                text = getIntensityText(impact.intensity),
+                                color = getMagnitudeColor(earthquake.magnitude),
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
-                    
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(IntrinsicSize.Min),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        InfoRow(
-                            label = "震源深度",
-                            value = "${earthquake.depth.toInt()} 公里",
-                            modifier = Modifier.weight(1f).padding(end = 8.dp)
-                        )
-                        Divider(
-                            color = Color.LightGray.copy(alpha = 0.6f),
+
+                    // 地震详细信息 (带竖直分隔线)
+                    Column {
+                        Row(
                             modifier = Modifier
-                                .fillMaxHeight(0.9f)
-                                .width(0.8.dp)
-                        )
-                        InfoRow(
-                            label = "发震时间",
-                            value = formatDate(earthquake.time),
-                            modifier = Modifier.weight(1f).padding(start = 8.dp)
-                        )
+                                .fillMaxWidth()
+                                .height(IntrinsicSize.Min),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            InfoRow(
+                                label = "震中坐标",
+                                value = "东经${String.format("%.1f", earthquake.location.longitude)}° 北纬${String.format("%.1f", earthquake.location.latitude)}°",
+                                modifier = Modifier.weight(1f).padding(end = 8.dp)
+                            )
+                            Divider(
+                                color = Color.Gray.copy(alpha = 1.0f),
+                                modifier = Modifier
+                                    .fillMaxHeight(0.9f) // 从 0.8f 改为 0.9f
+                                    .width(0.8.dp)
+                            )
+                            InfoRow(
+                                label = "震中距离",
+                                value = "${impact.distanceFromUser.toInt()} 公里",
+                                modifier = Modifier.weight(1f).padding(start = 8.dp)
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        Row(
+                    modifier = Modifier
+                                .fillMaxWidth()
+                                .height(IntrinsicSize.Min),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top
+                ) {
+                    InfoRow(
+                                label = "震源深度",
+                                value = "${earthquake.depth.toInt()} 公里",
+                                modifier = Modifier.weight(1f).padding(end = 8.dp)
+                            )
+                            Divider(
+                                color = Color.Gray.copy(alpha = 1.0f),
+                                modifier = Modifier
+                                    .fillMaxHeight(0.9f) // 从 0.8f 改为 0.9f
+                                    .width(0.8.dp)
+                            )
+                    InfoRow(
+                                label = "发震时间",
+                                value = formatDate(earthquake.time),
+                                modifier = Modifier.weight(1f).padding(start = 8.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -403,30 +487,12 @@ private fun getIntensityText(intensity: ShakingIntensity): String {
     }
 }
 
-// 获取地震烈度颜色
-private fun getIntensityColor(intensity: ShakingIntensity): Color {
-    return when (intensity.level) {
-        in 0..2 -> Color(0xFF0dcc06) // 绿色
-        in 3..4 -> Color(0xFFFE8001) // 橙色
-        else -> Color(0xFFEE4432) // 红色
-    }
-}
-
-// 获取震感背景颜色
-private fun getShakingBackgroundColor(intensity: ShakingIntensity): Color {
-    return when (intensity.level) {
-        in 0..2 -> Color(0xFF91DE91) // 柔和的浅绿色背景
-        in 3..4 -> Color(0xFFEFBE63) // 柔和的浅橙色背景
-        else -> Color(0xFFF3867D) // 柔和的浅红色背景
-    }
-}
-
 // 获取震级颜色
 private fun getMagnitudeColor(magnitude: Double): Color {
     return when {
-        magnitude >= 6.0 -> Color(0xFFEE4432) // 地震红色等级
+        magnitude >= 6.0 -> Color(0xFFFF1E00) // 地震红色等级
         magnitude >= 5.0 -> Color(0xFFFE8001) // 地震橙色等级
-        magnitude >= 4.0 -> Color(0xFFFFC200) // 地震黄色等级 
+        magnitude >= 4.0 -> Color(0xFFFF9C00) // 地震黄色等级
         else -> Color(0xFF68E864) // 绿色
     }
 }
@@ -434,9 +500,9 @@ private fun getMagnitudeColor(magnitude: Double): Color {
 // 新增：获取柔和的震级颜色
 private fun getSoftMagnitudeColor(magnitude: Double): Color {
     return when {
-        magnitude >= 6.0 -> Color(0xFFF8A096) // 柔红
+        magnitude >= 6.0 -> Color(0xFFF48779) // 柔红
         magnitude >= 5.0 -> Color(0xFFFFB74D) // 柔橙
-        magnitude >= 4.0 -> Color(0xFFFFF176) // 柔黄
+        magnitude >= 4.0 -> Color(0xFFFFD833) // 柔黄
         else -> Color(0xFFA5D6A7) // 柔绿
     }
 }
@@ -469,5 +535,5 @@ private fun getShakingColor(intensity: ShakingIntensity): Color {
         intensity.level >= 3 -> AlertMedium // 黄色
         else -> AlertLow // 绿色
     }
-}
+} 
 

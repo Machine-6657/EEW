@@ -50,6 +50,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.ui.graphics.lerp
 
 /**
  * A list of earthquakes
@@ -183,7 +184,6 @@ fun EarthquakeItem(
     val BlueEmphasis = Color(0xFF1E90FF) // 蓝色强调色
     val TextPrimary = Color.Black // 主要文本颜色
     val TextSecondary = Color.DarkGray // 次要文本颜色
-    val BackgroundPrimary = Color.White // 主要背景色
     val SichuanSourceColor = Color(0xFF1976D2) // 四川地震局数据来源标记颜色
     val ChinaSourceColor = Color(0xFF00796B) // 中国地震数据来源标记颜色
     val WorldSourceColor = Color(0xFF7B1FA2) // 世界地震数据来源标记颜色
@@ -194,7 +194,7 @@ fun EarthquakeItem(
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = lerp(getMagnitudeColorNew(earthquake.magnitude), Color.White, 0.85f)
         ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 2.dp,
@@ -211,7 +211,7 @@ fun EarthquakeItem(
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .clip(CircleShape)
+                    .clip(RoundedCornerShape(8.dp))
                     .background(getMagnitudeColorNew(earthquake.magnitude)),
                 contentAlignment = Alignment.Center
             ) {
@@ -322,7 +322,6 @@ fun SignificantEarthquakeItem(
     val BlueEmphasis = Color(0xFF1E90FF) // 蓝色强调色
     val TextPrimary = Color.Black // 主要文本颜色
     val TextSecondary = Color.DarkGray // 次要文本颜色
-    val BackgroundPrimary = Color.White // 主要背景色
     val WarningBackground = Color(0xFFFFF3E0) // 警告背景色
 
     Card(
@@ -331,7 +330,7 @@ fun SignificantEarthquakeItem(
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = lerp(getMagnitudeColorNew(impact.earthquake.magnitude), Color.White, 0.85f)
         ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 3.dp,
@@ -348,7 +347,7 @@ fun SignificantEarthquakeItem(
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .clip(CircleShape)
+                    .clip(RoundedCornerShape(8.dp))
                     .background(getMagnitudeColorNew(impact.earthquake.magnitude)),
                 contentAlignment = Alignment.Center
             ) {
@@ -464,10 +463,10 @@ private fun getImpactColor(impact: EarthquakeImpact): Color {
 // 获取震级颜色 - 新版
 private fun getMagnitudeColorNew(magnitude: Double): Color {
     return when {
-        magnitude >= 6.0 -> Color(0xFFF4606C) // 红色
-        magnitude >= 5.0 -> Color(0xFFFFA500) // 橙色
-        magnitude >= 4.0 -> Color(0xFFFFC107) // 黄色
-        else -> Color(0xFF19CAAD) // 绿色
+        magnitude >= 6.0 -> Color(0xFFDB583B) // 红色
+        magnitude >= 5.0 -> Color(0xFFF1892C) // 橙色
+        magnitude >= 4.0 -> Color(0xFFEEC048) // 黄色
+        else -> Color(0xFF5BC150) // 绿色
     }
 }
 
@@ -477,15 +476,6 @@ private fun getIntensityText(intensity: ShakingIntensity): String {
         in 0..2 -> "弱，请勿慌张"
         in 3..4 -> "中，请尽快逃生"
         else -> "强，请尽快自救"
-    }
-}
-
-// 获取地震烈度颜色 - 新版
-private fun getIntensityColorNew(intensity: ShakingIntensity): Color {
-    return when (intensity.level) {
-        in 0..2 -> Color(0xFF19CAAD) // 绿色
-        in 3..4 -> Color(0xFFFFA500) // 橙色
-        else -> Color(0xFFF4606C) // 红色
     }
 }
 
@@ -531,39 +521,12 @@ private fun EmptyStateContent(
             Spacer(modifier = Modifier.height(8.dp))
             
             Text(
-                text = "目前没有中国地震台网或四川地震局的数据，" + 
-                      if (isLoading) "正在努力获取中..." else "请点击刷新按钮重试",
+                text = "目前没有中国地震台网或四川地震局的数据，" +
+                      if (isLoading) "正在努力获取中..." else "请稍后自动刷新或检查网络连接。",
                 style = MaterialTheme.typography.bodyLarge,
                 color = TextSecondary,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            androidx.compose.material3.Button(
-                onClick = onRefresh,
-                shape = RoundedCornerShape(8.dp),
-                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                    containerColor = AccentColor
-                )
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "刷新"
-                    )
-                    
-                    Spacer(modifier = Modifier.width(8.dp))
-                    
-                    Text(
-                        text = "刷新",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
         }
     }
 } 

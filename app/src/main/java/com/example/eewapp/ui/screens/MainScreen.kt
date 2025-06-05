@@ -202,7 +202,7 @@ fun BottomNavigation(
     modifier: Modifier = Modifier
 ) {
     // 定义颜色常量
-    val BlueEmphasis = Color(0xFF5C86F0) // 新的蓝色强调色
+    val BlueEmphasis = Color(0xFF6685EC) // 新的蓝色强调色
     val TextPrimary = Color.Black // 主要文本颜色
     val TextSecondary = Color.DarkGray // 次要文本颜色
     val BackgroundPrimary = Color(0xFFF0F2F5) // 更明显的浅灰色背景
@@ -390,7 +390,7 @@ fun PermissionRequest(
     modifier: Modifier = Modifier
 ) {
     // 定义颜色常量
-    val BlueEmphasis = Color(0xFF5C86F0) // 新的蓝色强调色
+    val BlueEmphasis = Color(0xFF6685EC) // 新的蓝色强调色
     val TextPrimary = Color.Black // 主要文本颜色
     val TextSecondary = Color.DarkGray // 次要文本颜色
     val BackgroundPrimary = Color(0xFFF0F2F5) // 更明显的浅灰色背景

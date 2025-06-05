@@ -12,14 +12,14 @@ val PurpleGrey40 = Color(0xFF625b71)
 val Pink40 = Color(0xFF7D5260)
 
 // 新主题色 - 蓝色系列 #1E90FF
-val BlueEmphasis = Color(0xFF1E90FF) // 主蓝色 #1E90FF
+val BlueEmphasis = Color(0xFF6685ec) // 主蓝色 #6685ec
 val BlueEmphasisLight = Color(0xFF4FC3F7) // 浅蓝色
 val BlueEmphasisDark = Color(0xFF0D47A1) // 深蓝色
 
 // App-specific colors - 蓝色主题配色方案
 val Background = Color(0xFFF0F2F5) // 更明显的浅灰色背景，与白色卡片形成对比
 val Surface = Color(0xFFFFFFFF) // 白色表面
-val Primary = Color(0xFF1E90FF) // 主蓝色 #1E90FF
+val Primary = Color(0xFF6685ec) // 主蓝色 #6685ec
 val Secondary = Color(0xFF42A5F5) // 辅助蓝色
 val Accent = Color(0xFF1976D2) // 深蓝色作为强调色
 
@@ -42,6 +42,6 @@ val TextDisabled = Color(0xFFBDBDBD) // 浅灰色文字
 
 // UI元素颜色 - 蓝色主题
 val CardBackground = Color(0xFFFFFFFF) // 白色卡片背景
-val ButtonBackground = Color(0xFF1E90FF) // 蓝色按钮背景
+val ButtonBackground = Color(0xFF6685ec) // 蓝色按钮背景
 val ButtonPressed = Color(0xFF0D47A1) // 按钮按下颜色
-val HighlightColor = Color(0xFF1E90FF) // 蓝色高亮颜色
+val HighlightColor = Color(0xFF6685ec) // 蓝色高亮颜色

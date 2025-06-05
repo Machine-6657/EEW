@@ -63,6 +63,7 @@ import com.example.eewapp.ui.components.switchMapTo3D
 import com.example.eewapp.ui.components.switchMapTo2D
 import com.example.eewapp.ui.components.createLatLng
 import androidx.compose.material.icons.filled.Call // 新增导入
+import com.example.eewapp.ui.theme.Primary // Added import
 
 /**
  * 使用高德地图的地震预警地图组件
@@ -637,7 +638,7 @@ fun EarthquakeAMap(
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 16.dp, end = 16.dp)
+                .padding(top = 8.dp, end = 8.dp) // 修改了这里的 padding
         ) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -778,13 +779,13 @@ fun EarthquakeAMap(
                         Triple("四川省汶川县", 31.0023, 103.6472),
                         Triple("云南省丽江市古城区", 26.8721, 100.2299),
                         Triple("青海省玉树藏族自治州玉树市", 33.0062, 97.0085),
-                        Triple("新疆维吾尔自治区喀什地区", 39.4707, 75.9922),
+                        Triple("新疆维吾尔自治区喀什", 39.4707, 75.9922),
                         
                         // 中等震感地震 (震级5.0-6.0)
                         Triple("四川省成都市都江堰市", 31.0023, 103.6472),
                         Triple("四川省成都市温江区", 30.6825, 103.8560),
                         Triple("陕西省宝鸡市渭滨区", 34.3609, 107.2372),
-                        Triple("新疆维吾尔自治区乌鲁木齐市天山区", 43.8256, 87.6168),
+                        Triple("新疆维吾尔自治区乌鲁木齐", 43.8256, 87.6168),
                         
                         // 弱震感地震 (震级4.0-5.0)
                         Triple("北京市海淀区", 40.0300, 116.3000),
@@ -1357,8 +1358,8 @@ fun CollapsibleControlPanel(
     handleIcon: ImageVector = Icons.Default.ChevronRight,
     handleExpandedIcon: ImageVector = Icons.Default.ChevronLeft,
     handleBackgroundColor: ComposeColor = ComposeColor.White, // 改为白色背景
-    handleIconColor: ComposeColor = ComposeColor(0xFF1E90FF), // 改为蓝色图标
-    buttonContainerColor: ComposeColor = ComposeColor(0xFF1E90FF),
+    handleIconColor: ComposeColor = Primary, // Use theme color
+    buttonContainerColor: ComposeColor = Primary, // Use theme color
     buttonContentColor: ComposeColor = ComposeColor.White,
     onSimulate: () -> Unit,
     onCancel: () -> Unit
@@ -1682,7 +1683,7 @@ private fun FloatingActionButtons(
                         .fillMaxWidth()
                         .height(44.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = ComposeColor(0xFF2196F3),
+                        containerColor = ComposeColor(0xFF00B4F4),
                         contentColor = ComposeColor.White
                     ),
                     shape = RoundedCornerShape(8.dp),
@@ -1715,7 +1716,7 @@ Icon(
                     .fillMaxWidth()
                     .height(44.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = ComposeColor(0xFF4CAF50),
+                    containerColor = ComposeColor(0xFF6CCF70),
                     contentColor = ComposeColor.White
                 ),
                 shape = RoundedCornerShape(8.dp),

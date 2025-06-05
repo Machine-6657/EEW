@@ -39,7 +39,7 @@ import androidx.compose.ui.res.stringResource
 import com.example.eewapp.R
 
 // 定义颜色常量
-private val BlueEmphasis = Color(0xFF1E90FF) // 蓝色强调色
+private val BlueEmphasis = Color(0xFF6685EC) // 蓝色强调色
 private val TextPrimary = Color.Black // 主要文本颜色
 private val TextSecondary = Color.DarkGray // 次要文本颜色
 private val BackgroundPrimary = Color(0xFFF0F2F5) // 更明显的浅灰色背景

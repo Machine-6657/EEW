@@ -258,7 +258,7 @@ private fun EmergencyContactItem(
                 modifier = Modifier
                     .size(48.dp)
                     .background(
-                        color = Color(0xFF4285F4),
+                        color = Color(0xFFDB583B),
                         shape = CircleShape
                     )
                     .clickable { onCall() },

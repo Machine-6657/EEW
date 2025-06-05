@@ -9,6 +9,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Emergency
+import androidx.compose.material.icons.filled.Texture
+import androidx.compose.material.icons.filled.HealthAndSafety
+import androidx.compose.material.icons.filled.Diversity1
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 // 定义颜色常量
-private val BlueEmphasis = Color(0xFF1E90FF) // 蓝色强调色
+private val BlueEmphasis = Color(0xFF6685EC) // 蓝色强调色
 private val TextPrimary = Color.Black // 主要文本颜色
 private val TextSecondary = Color.DarkGray // 次要文本颜色
 private val BackgroundPrimary = Color(0xFFF0F2F5) // 更明显的浅灰色背景
@@ -50,7 +53,7 @@ fun SafetyGuideScreen(
                 onClick = { selectedTab = 0 },
                 text = {
                     Text(
-                        "无震时",
+                        "地震前",
                         color = if (selectedTab == 0) BlueEmphasis else TextSecondary,
                         fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal
                     )
@@ -61,7 +64,7 @@ fun SafetyGuideScreen(
                 onClick = { selectedTab = 1 },
                 text = {
                     Text(
-                        "地震时",
+                        "地震中",
                         color = if (selectedTab == 1) BlueEmphasis else TextSecondary,
                         fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal
                     )
@@ -102,11 +105,11 @@ fun BeforeEarthquakeContent() {
         
         // 图标
         Icon(
-            imageVector = Icons.Default.Shield,
+            imageVector = Icons.Default.HealthAndSafety,
             contentDescription = null,
             modifier = Modifier.size(80.dp),
             tint = BlueEmphasis.copy(alpha = 0.7f)
-                )
+        )
                 
         Spacer(modifier = Modifier.height(24.dp))
                 
@@ -157,16 +160,16 @@ fun DuringEarthquakeContent() {
         
         // 图标
                         Icon(
-                            imageVector = Icons.Default.Warning,
+                            imageVector = Icons.Default.Texture,
                             contentDescription = null,
             modifier = Modifier.size(80.dp),
-            tint = Color(0xFFFF9800)
+            tint = BlueEmphasis.copy(alpha = 0.7f)
                         )
                         
         Spacer(modifier = Modifier.height(24.dp))
                         
                         Text(
-            text = "地震发生时",
+            text = "地震发生中",
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = TextPrimary,
@@ -212,16 +215,16 @@ fun AfterEarthquakeContent() {
         
         // 图标
         Icon(
-            imageVector = Icons.Default.Emergency,
+            imageVector = Icons.Default.Diversity1,
             contentDescription = null,
             modifier = Modifier.size(80.dp),
-            tint = Color(0xFFD32F2F)
+            tint = BlueEmphasis.copy(alpha = 0.7f)
         )
         
         Spacer(modifier = Modifier.height(24.dp))
         
         Text(
-            text = "地震后处理",
+            text = "地震后救援",
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = TextPrimary,
